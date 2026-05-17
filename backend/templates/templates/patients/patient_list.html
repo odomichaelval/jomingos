@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% block title %}Patients{% endblock %}
+{% block nav_patients %}active{% endblock %}
+{% block nav_patients_open %}menu-open{% endblock %}
+{% block nav_patient_list %}active{% endblock %}
+
+{% block content %}
+<div class="app-content-header">
+  <div class="container-fluid">
+    <div class="row align-items-center">
+      <div class="col-sm-6">
+        <h1 class="mb-0"><i class="bi bi-people-fill me-2"></i>Patient Register</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-end mb-0">
+          <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+          <li class="breadcrumb-item active">Patients</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="app-content">
+  <div class="container-fluid">
+
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show rounded-3" role="alert">
+      <i class="bi bi-info-circle me-2"></i>{{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+
+    <div class="card mb-4">
+      <div class="card-body py-3">
+        <form method="get" class="row g-2 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold text-muted mb-1">SEARCH</label>
+            <div class="input-group input-group-sm">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input type="text" name="q" class="form-control" placeholder="Name, NHS number, room..." value="{{ query }}">
+            </div>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold text-muted mb-1">CARE LEVEL</label>
+            <select name="care_level" class="form-select form-select-sm">
+              <option value="">All Care Levels</option>
+              {% for code, label in care_level_choices %}
+              <option value="{{ code }}" {% if care_level == code %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small fw-semibold text-muted mb-1">STATUS</label>
+            <select name="status" class="form-select form-select-sm">
+              <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+              <option value="archived" {% if status == 'archived' %}selected{% endif %}>Archived</option>
+              <option value="all" {% if status == 'all' %}selected{% endif %}>All</option>
+            </select>
+          </div>
+          <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+              <i class="bi bi-funnel me-1"></i>Filter
+            </button>
+            <a href="{% url 'patient_list' %}" class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-x-circle"></i>
+            </a>
+            {% if request.user.role in 'admin,nurse' %}
+            <a href="{% url 'patient_add' %}" class="btn btn-success btn-sm flex-grow-1">
+              <i class="bi bi-plus-lg me-1"></i>New
+            </a>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {% if page_obj %}
+    <div class="row g-3">
+      {% for patient in page_obj %}
+      <div class="col-xl-3 col-lg-4 col-md-6">
+        <div class="card h-100 patient-card" style="border-top: 3px solid var(--bs-{{ patient.care_level_badge }}, #0d6efd);">
+          <div class="card-body pb-2">
+
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <div class="patient-avatar bg-{{ patient.care_level_badge }} bg-opacity-15 text-{{ patient.care_level_badge }}" style="width:48px;height:48px;font-size:1.1rem;flex-shrink:0;">
+                {{ patient.initials }}
+              </div>
+              <div class="overflow-hidden">
+                <h6 class="mb-0 fw-bold text-truncate">
+                  <a href="{% url 'patient_detail' patient.pk %}" class="text-decoration-none text-dark">{{ patient.get_full_name }}</a>
+                </h6>
+                <small class="text-muted">Age {{ patient.get_age }} &bull; {{ patient.get_gender_display }}</small>
+              </div>
+              {% if patient.has_allergies %}
+              <span class="ms-auto flex-shrink-0" title="{{ patient.allergies }}">
+                <i class="bi bi-exclamation-triangle-fill text-danger fs-6"></i>
+              </span>
+              {% endif %}
+            </div>
+
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <div class="bg-light rounded p-2 text-center">
+                  <div class="text-muted" style="font-size:.65rem;font-weight:600;">ROOM</div>
+                  <div class="fw-bold small">{{ patient.room_number|default:"—" }}</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="bg-light rounded p-2 text-center">
+                  <div class="text-muted" style="font-size:.65rem;font-weight:600;">ADMITTED</div>
+                  <div class="fw-bold small">{{ patient.admission_date|date:"d M Y" }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex gap-1 flex-wrap">
+              <span class="badge text-bg-{{ patient.care_level_badge }}" style="font-size:.65rem;">
+                {{ patient.get_care_level_display }}
+              </span>
+              {% if patient.blood_group %}
+              <span class="badge text-bg-secondary" style="font-size:.65rem;">
+                <i class="bi bi-droplet-fill me-1"></i>{{ patient.blood_group }}
+              </span>
+              {% endif %}
+              {% if not patient.is_active %}
+              <span class="badge text-bg-dark" style="font-size:.65rem;">Archived</span>
+              {% endif %}
+              {% with latest_v=patient.vitals.first %}
+              {% if latest_v %}
+              <span class="badge text-bg-{{ latest_v.news2_color }} fw-bold" style="font-size:.65rem;" title="NEWS2 Breakdown — RR: {{ latest_v.news2_respiratory_score }} | SpO2: {{ latest_v.news2_spo2_score }} | Temp: {{ latest_v.news2_temp_score }} | BP: {{ latest_v.news2_bp_score }} | HR: {{ latest_v.news2_hr_score }}">
+                <i class="bi bi-activity me-1"></i>NEWS2: {{ latest_v.news2_total }}
+              </span>
+              {% endif %}
+              {% endwith %}
+            </div>
+          </div>
+
+          <div class="card-footer bg-white pt-2 pb-2">
+            <div class="d-flex gap-1">
+              <a href="{% url 'patient_detail' patient.pk %}" class="btn btn-sm btn-primary flex-grow-1" style="font-size:.75rem;">
+                <i class="bi bi-eye me-1"></i>View
+              </a>
+              <a href="{% url 'add_care_note' patient.pk %}" class="btn btn-sm btn-success" title="Add Care Note" style="font-size:.75rem;">
+                <i class="bi bi-journal-plus"></i>
+              </a>
+              <a href="{% url 'add_vitals' patient.pk %}" class="btn btn-sm btn-danger" title="Record Vitals" style="font-size:.75rem;">
+                <i class="bi bi-heart-pulse"></i>
+              </a>
+              {% if request.user.role in 'admin,nurse' %}
+              <a href="{% url 'patient_edit' patient.pk %}" class="btn btn-sm btn-outline-secondary" title="Edit" style="font-size:.75rem;">
+                <i class="bi bi-pencil"></i>
+              </a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="d-flex justify-content-between align-items-center mt-4">
+      <small class="text-muted">Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ total_count }} patients</small>
+      <nav>
+        <ul class="pagination pagination-sm mb-0">
+          {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ query }}&care_level={{ care_level }}&status={{ status }}">
+              <i class="bi bi-chevron-left"></i>
+            </a>
+          </li>
+          {% endif %}
+          {% for num in page_obj.paginator.page_range %}
+          <li class="page-item {% if num == page_obj.number %}active{% endif %}">
+            <a class="page-link" href="?page={{ num }}&q={{ query }}&care_level={{ care_level }}&status={{ status }}">{{ num }}</a>
+          </li>
+          {% endfor %}
+          {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ query }}&care_level={{ care_level }}&status={{ status }}">
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <i class="bi bi-people fs-1 text-muted opacity-25 d-block mb-3"></i>
+        <h4 class="text-muted">No patients found</h4>
+        <p class="text-muted">{% if query %}No results for "{{ query }}"{% else %}No patients registered yet{% endif %}</p>
+        {% if request.user.role in 'admin,nurse' %}
+        <a href="{% url 'patient_add' %}" class="btn btn-success">
+          <i class="bi bi-plus-circle me-1"></i>Register First Patient
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}
