@@ -1,79 +1,83 @@
-# Jomingos — Healthcare Home Documentation Platform
+# JOMINGOS Backend
 
-A Django application for care-home documentation (patients, care notes, medications, vital signs, tasks).
+A Django-based healthcare home documentation platform backend with user authentication, profile management, and password change functionality.
 
-## Quick Start (Local)
+## Features
 
+- User authentication (Login/Logout)
+- User profile management with file upload
+- Self-service password change with complexity requirements
+- Role-based access control (Admin, Doctor, Nurse, Care Assistant)
+- Staff management system
+- WCAG 2.1 AA compliant interface
+
+## Tech Stack
+
+- Django 4.x
+- Django REST Framework
+- SQLite (development)
+- Bootstrap 5
+- AdminLTE 4
+
+## Quick Start
+
+### Requirements
+- Python 3.8+
+- pip
+- Virtual environment
+
+### Installation
+
+1. Clone the repository:
 ```bash
-# 1) Create and activate a virtual environment
+git clone https://github.com/ebujoe/JOMINGOS-clean.git
+cd backend
+```
+
+2. Create virtual environment:
+```bash
 python -m venv venv
-venv\Scripts\activate
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
 
-# 2) Install dependencies
+3. Install dependencies:
+```bash
 pip install -r requirements.txt
+```
 
-# 3) Run migrations
-python manage.py makemigrations accounts patients care_notes medications vitals
+4. Run migrations:
+```bash
 python manage.py migrate
+```
 
-# 4) Seed demo data (optional)
-python manage.py seed_data
+5. Create superuser:
+```bash
+python manage.py createsuperuser
+```
 
-# 5) Start the server
+6. Run development server:
+```bash
 python manage.py runserver
 ```
 
-Open `http://127.0.0.1:8000/`
-
-## Demo Login Credentials
-
-| Role           | Username      | Password |
-|----------------|---------------|----------|
-| Administrator  | admin         | admin123 |
-| Nurse          | nurse.adams   | nurse123 |
-| Doctor         | dr.wilson     | doc123   |
-| Care Assistant | care.jones    | care123  |
-
-## REST API (for Next.js)
-
-API base path:
-- `/api/`
-
-Docs:
-- `GET /api/docs/swagger/`
-- `GET /api/docs/redoc/`
-
-Auth endpoints:
-- `POST /api/accounts/register/`
-- `POST /api/accounts/login/`
-- `GET /api/accounts/me/`
-- `POST /api/accounts/change-password/`
-
-## SQL Server (Azure SQL)
-
-To use SQL Server as the database backend:
-
-1. Copy `backend/.env.example` to `backend/.env`
-2. Fill in your Azure SQL connection settings
-3. Run migrations:
-   - `python manage.py migrate`
+Server runs at `http://127.0.0.1:8000`
 
 ## Project Structure
 
 ```
 backend/
-  manage.py
-  requirements.txt
-  Jomingos/        # Django project settings + URLs
-  accounts/        # Custom user + auth
-  patients/        # Patient management
-  care_notes/      # Care note documentation
-  medications/     # Medication administration records
-  vitals/          # Vital signs tracking
-  tasks/           # Care tasks/checklists
-  family/          # Family portal
-  dashboard/       # Dashboard + seed command
-  templates/       # Django templates (AdminLTE)
-  api/             # REST API routing (/api/*)
+├── accounts/           # User authentication and profiles
+├── templates/          # HTML templates
+├── static/            # CSS, JS, images
+├── manage.py
+└── requirements.txt
 ```
+
+## Frontend
+
+The frontend is maintained separately and will be integrated via API endpoints.
+
+## License
+
+© 2026 JOMINGOS - Healthcare Home Documentation Platform
 
