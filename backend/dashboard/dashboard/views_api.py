@@ -1,0 +1,142 @@
+"""
+Dashboard API Views
+Provides summary statistics and role-scoped dashboard payloads.
+"""
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
+from django.utils import timezone
+from datetime import timedelta
+from accounts.models import User
+from patients.models import Patient
+from care_notes.models import CareNote
+from medications.models import Medication
+from vitals.models import VitalSigns
+
+
+ROLE_ROUTE_MAP = {
+    "admin": "admin",
+    "doctor": "doctor",
+    "nurse": "nurse",
+    "care-assistant": "care_assistant",
+}
+
+
+ROLE_DASHBOARD_COPY = {
+    "admin": {
+        "title": "Administrator Command Centre",
+        "subtitle": "Operational visibility across residents, staffing, records, and risk.",
+        "focus": ["Staff coverage", "Clinical governance", "Resident safety", "Audit readiness"],
+    },
+    "doctor": {
+        "title": "Doctor Clinical Workspace",
+        "subtitle": "Prioritise reviews, risk signals, medication history, and clinical observations.",
+        "focus": ["High-risk reviews", "Medication oversight", "NEWS2 trends", "Clinical notes"],
+    },
+    "nurse": {
+        "title": "Nurse Shift Dashboard",
+        "subtitle": "Coordinate observations, medications, notes, and handover activity for the shift.",
+        "focus": ["Medication rounds", "Vitals due", "Shift handover", "Resident notes"],
+    },
+    "care_assistant": {
+        "title": "Care Assistant Daily Care Hub",
+        "subtitle": "Stay close to personal care, wellbeing notes, routines, and resident support tasks.",
+        "focus": ["Personal care", "Wellbeing checks", "Daily activities", "Escalations"],
+    },
+}
+
+class DashboardStatsView(APIView):
+    """
+    API endpoint for dashboard statistics
+    GET /api/dashboard/stats/
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Return summary statistics for the dashboard"""
+        today = timezone.localdate()
+        
+        stats = {
+            'total_patients': Patient.objects.filter(is_active=True).count(),
+            'notes_today': CareNote.objects.filter(created_at__date=today).count(),
+            'staff_count': User.objects.filter(is_active=True).count(),
+            'medications_today': Medication.objects.filter(administered_at__date=today).count(),
+        }
+        return Response(stats)
+
+
+class RoleDashboardView(APIView):
+    """
+    GET /api/dashboard/<role>/
+    Returns dashboard data only when the authenticated user's role matches.
+    This is the backend access-control gate used by the role-specific frontend pages.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, role):
+        requested_role = ROLE_ROUTE_MAP.get(role)
+        if requested_role is None:
+            return Response({"detail": "Unknown dashboard role."}, status=status.HTTP_404_NOT_FOUND)
+
+        if request.user.role != requested_role:
+            return Response(
+                {"detail": "You do not have permission to access this dashboard."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        today = timezone.localdate()
+        last_24h = timezone.now() - timedelta(hours=24)
+        high_risk_count = 0
+        observations_due = 0
+
+        for patient in Patient.objects.filter(is_active=True):
+            latest_vitals = VitalSigns.objects.filter(patient=patient).order_by("-recorded_at").first()
+            if not latest_vitals:
+                observations_due += 1
+                continue
+            if latest_vitals.news2_level == "high":
+                high_risk_count += 1
+            if latest_vitals.recorded_at < last_24h:
+                observations_due += 1
+
+        recent_notes = CareNote.objects.select_related("patient", "author").order_by("-created_at")[:5]
+        recent_medications = Medication.objects.select_related("patient", "administered_by").order_by("-administered_at")[:5]
+
+        payload = {
+            "user": {
+                "username": request.user.username,
+                "full_name": request.user.get_full_name(),
+                "role": request.user.role,
+                "role_display": request.user.get_role_display(),
+            },
+            "profile": ROLE_DASHBOARD_COPY[requested_role],
+            "metrics": {
+                "active_patients": Patient.objects.filter(is_active=True).count(),
+                "notes_today": CareNote.objects.filter(created_at__date=today).count(),
+                "medications_today": Medication.objects.filter(administered_at__date=today).count(),
+                "staff_on_duty": User.objects.filter(is_active=True, is_on_duty=True).count(),
+                "high_risk_patients": high_risk_count,
+                "observations_due": observations_due,
+            },
+            "activity": [
+                {
+                    "kind": "Care note",
+                    "title": f"{note.get_category_display()} note",
+                    "detail": f"{note.patient} by {note.author.get_full_name() or note.author.username}",
+                    "time": note.created_at,
+                }
+                for note in recent_notes
+            ],
+            "medication_activity": [
+                {
+                    "kind": "Medication",
+                    "title": f"{med.drug_name} {med.dosage}",
+                    "detail": f"{med.patient} by {med.administered_by.get_full_name() or med.administered_by.username}",
+                    "time": med.administered_at,
+                }
+                for med in recent_medications
+            ],
+        }
+        return Response(payload)
