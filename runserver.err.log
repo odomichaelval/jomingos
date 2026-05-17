@@ -1,6 +1,0 @@
-System check identified some issues:
-
-WARNINGS:
-?: (staticfiles.W004) The directory 'C:\Users\ebujo\OneDrive - Sheffield Hallam University\JOMINGOS\backend\static' in the STATICFILES_DIRS setting does not exist.
-
-System check identified 1 issue (0 silenced).
