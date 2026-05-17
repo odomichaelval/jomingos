@@ -92,6 +92,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* Main JS */}
         <Script src="/js/main.js" strategy="afterInteractive" />
+          {/* Tidio Live Chat Widget */}
+        <script src="//code.tidio.co/attt6pndpz3ckchw5xuiryklh2lpskpf.js" async></script>
       </body>
     </html>
   );
