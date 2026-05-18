@@ -1,139 +1,151 @@
-{% extends "base.html" %}
-
-{% block title %}Register{% endblock %}
-
-{% block content %}
-<div class="login-page">
-  <div class="login-box">
-    <div class="login-logo mb-4">
-      <a href="{% url 'login' %}"><b>Jomingos</b></a>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Register | Jomingos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@4.0.0-beta3/dist/css/adminlte.min.css"/>
+  <style>
+    body {
+      background: linear-gradient(135deg, #0f2c5a 0%, #0E7C7B 50%, #16A085 100%);
+      min-height: 100vh; display:flex; align-items:center; justify-content:center;
+    }
+    .register-card {
+      background: rgba(255,255,255,0.97);
+      border-radius: 20px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+      padding: 2.5rem;
+      width: 100%; max-width: 480px;
+    }
+    .brand-icon {
+      width: 70px; height: 70px; background: linear-gradient(135deg,#1B4F8A,#0E7C7B);
+      border-radius: 50%; display:flex; align-items:center; justify-content:center;
+      margin: 0 auto 1rem; box-shadow: 0 8px 20px rgba(27,79,138,.4);
+    }
+    .register-title { color: #1B4F8A; font-weight: 800; font-size: 1.7rem; }
+    .register-subtitle { color: #6c757d; font-size: .9rem; }
+    .form-control, .form-control:focus {
+      border-radius: 10px; padding: .7rem 1rem;
+      border: 1.5px solid #dee2e6; font-size: .95rem;
+    }
+    .form-control:focus { border-color: #1B4F8A; box-shadow: 0 0 0 3px rgba(27,79,138,.1); }
+    .btn-register {
+      background: linear-gradient(135deg, #28a745, #20c997);
+      border: none; border-radius: 10px; padding: .75rem;
+      font-weight: 700; letter-spacing: .5px; transition: all .3s;
+    }
+    .btn-register:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(40,167,69,.4); }
+    .divider { display:flex; align-items:center; gap:1rem; color:#adb5bd; font-size:.8rem; margin: 1rem 0; }
+    .divider::before, .divider::after { content:''; flex:1; height:1px; background:#e9ecef; }
+    .form-label { font-weight: 600; font-size: 0.85rem; color: #495057; }
+    .small-text { font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <div class="register-card">
+    <!-- Brand -->
+    <div class="text-center mb-3">
+      <div class="brand-icon">
+        <i class="bi bi-heart-pulse-fill text-white fs-3"></i>
+      </div>
+      <h1 class="register-title mb-0">Jomingos</h1>
+      <p class="register-subtitle">Healthcare Home Documentation Platform</p>
     </div>
 
-    <div class="card card-outline card-success">
-      <div class="card-header text-center">
-        <p class="mb-0 fw-bold">Create Your Account</p>
-      </div>
-      <div class="card-body">
-        {% if messages %}
-          {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-              {{ message }}
-              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-          {% endfor %}
+    <div class="divider">Create Account</div>
+
+    <!-- Messages -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show rounded-3 py-2 small" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Form -->
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger rounded-3 py-2 small mb-3">
+          <i class="bi bi-exclamation-triangle me-1"></i>{{ form.non_field_errors.0 }}
+        </div>
+      {% endif %}
+
+      <div class="mb-3">
+        <label for="{{ form.username.id_for_label }}" class="form-label">USERNAME</label>
+        {{ form.username }}
+        {% if form.username.errors %}
+          <div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>
         {% endif %}
-
-        <form method="post" action="{% url 'register' %}">
-          {% csrf_token %}
-
-          {% if form.non_field_errors %}
-            <div class="alert alert-danger" role="alert">
-              <strong>Registration Error:</strong>
-              {{ form.non_field_errors }}
-            </div>
-          {% endif %}
-
-          <div class="mb-3">
-            <label for="{{ form.username.id_for_label }}" class="form-label">Username</label>
-            {{ form.username }}
-            {% if form.username.errors %}
-              <div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>
-            {% endif %}
-          </div>
-
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label for="{{ form.first_name.id_for_label }}" class="form-label">First Name</label>
-              {{ form.first_name }}
-              {% if form.first_name.errors %}
-                <div class="text-danger small mt-1">{{ form.first_name.errors.0 }}</div>
-              {% endif %}
-            </div>
-            <div class="col-md-6 mb-3">
-              <label for="{{ form.last_name.id_for_label }}" class="form-label">Last Name</label>
-              {{ form.last_name }}
-              {% if form.last_name.errors %}
-                <div class="text-danger small mt-1">{{ form.last_name.errors.0 }}</div>
-              {% endif %}
-            </div>
-          </div>
-
-          <div class="mb-3">
-            <label for="{{ form.email.id_for_label }}" class="form-label">Email Address</label>
-            {{ form.email }}
-            {% if form.email.errors %}
-              <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
-            {% endif %}
-          </div>
-
-          <div class="mb-3">
-            <label for="{{ form.password1.id_for_label }}" class="form-label">Password</label>
-            {{ form.password1 }}
-            {% if form.password1.errors %}
-              <div class="text-danger small mt-1">
-                {% for error in form.password1.errors %}
-                  <div>{{ error }}</div>
-                {% endfor %}
-              </div>
-            {% endif %}
-            <small class="form-text text-muted d-block mt-2">
-              <i class="bi bi-info-circle"></i>
-              Password must contain: uppercase, lowercase, numbers, and special characters (!@#$%^&*)
-            </small>
-          </div>
-
-          <div class="mb-3">
-            <label for="{{ form.password2.id_for_label }}" class="form-label">Confirm Password</label>
-            {{ form.password2 }}
-            {% if form.password2.errors %}
-              <div class="text-danger small mt-1">{{ form.password2.errors.0 }}</div>
-            {% endif %}
-          </div>
-
-          <div class="d-grid">
-            <button type="submit" class="btn btn-success">
-              <i class="bi bi-person-plus me-2"></i>Create Account
-            </button>
-          </div>
-        </form>
-
-        <hr>
-        <p class="text-center mb-0">
-          Already have an account? <a href="{% url 'login' %}">Sign In</a>
-        </p>
       </div>
-    </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label for="{{ form.first_name.id_for_label }}" class="form-label">FIRST NAME</label>
+          {{ form.first_name }}
+          {% if form.first_name.errors %}
+            <div class="text-danger small mt-1">{{ form.first_name.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label for="{{ form.last_name.id_for_label }}" class="form-label">LAST NAME</label>
+          {{ form.last_name }}
+          {% if form.last_name.errors %}
+            <div class="text-danger small mt-1">{{ form.last_name.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label for="{{ form.email.id_for_label }}" class="form-label">EMAIL ADDRESS</label>
+        {{ form.email }}
+        {% if form.email.errors %}
+          <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label for="{{ form.password1.id_for_label }}" class="form-label">PASSWORD</label>
+        {{ form.password1 }}
+        {% if form.password1.errors %}
+          <div class="text-danger small mt-1">
+            {% for error in form.password1.errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+        <small class="form-text text-muted d-block mt-2 small-text">
+          <i class="bi bi-info-circle"></i> Must contain: uppercase, lowercase, numbers &amp; special characters
+        </small>
+      </div>
+
+      <div class="mb-3">
+        <label for="{{ form.password2.id_for_label }}" class="form-label">CONFIRM PASSWORD</label>
+        {{ form.password2 }}
+        {% if form.password2.errors %}
+          <div class="text-danger small mt-1">{{ form.password2.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <button type="submit" class="btn btn-register btn-register w-100 text-white mt-2">
+        <i class="bi bi-person-plus me-2"></i>Create Account
+      </button>
+    </form>
+
+    <div class="divider mt-4 mb-3">Or</div>
+
+    <p class="text-center text-muted small mb-3">
+      Already have an account?
+      <a href="{% url 'login' %}" class="text-decoration-none fw-semibold" style="color: #1B4F8A;">
+        Sign In
+      </a>
+    </p>
   </div>
-</div>
 
-<style>
-  body.login-page {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    background: linear-gradient(135deg, #1B4F8A, #0E7C7B);
-  }
-  .login-page .login-box {
-    width: 100%;
-    max-width: 420px;
-  }
-  .login-logo a {
-    color: #fff;
-    font-size: 2rem;
-    font-weight: 700;
-  }
-  .login-page .card {
-    border: none;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  }
-</style>
-
-<script>
-  document.body.classList.add('login-page');
-  document.querySelector('.app-wrapper').style.display = 'none';
-  document.querySelector('.navbar').style.display = 'none';
-  document.querySelector('aside').style.display = 'none';
-  document.querySelector('footer').style.display = 'none';
-</script>
-{% endblock %}
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
