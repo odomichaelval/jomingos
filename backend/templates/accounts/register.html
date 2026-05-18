@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="login-page">
+  <div class="login-box">
+    <div class="login-logo mb-4">
+      <a href="{% url 'login' %}"><b>Jomingos</b></a>
+    </div>
+
+    <div class="card card-outline card-success">
+      <div class="card-header text-center">
+        <p class="mb-0 fw-bold">Create Your Account</p>
+      </div>
+      <div class="card-body">
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        <form method="post" action="{% url 'register' %}">
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger" role="alert">
+              <strong>Registration Error:</strong>
+              {{ form.non_field_errors }}
+            </div>
+          {% endif %}
+
+          <div class="mb-3">
+            <label for="{{ form.username.id_for_label }}" class="form-label">Username</label>
+            {{ form.username }}
+            {% if form.username.errors %}
+              <div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.first_name.id_for_label }}" class="form-label">First Name</label>
+              {{ form.first_name }}
+              {% if form.first_name.errors %}
+                <div class="text-danger small mt-1">{{ form.first_name.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.last_name.id_for_label }}" class="form-label">Last Name</label>
+              {{ form.last_name }}
+              {% if form.last_name.errors %}
+                <div class="text-danger small mt-1">{{ form.last_name.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="{{ form.email.id_for_label }}" class="form-label">Email Address</label>
+            {{ form.email }}
+            {% if form.email.errors %}
+              <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label for="{{ form.password1.id_for_label }}" class="form-label">Password</label>
+            {{ form.password1 }}
+            {% if form.password1.errors %}
+              <div class="text-danger small mt-1">
+                {% for error in form.password1.errors %}
+                  <div>{{ error }}</div>
+                {% endfor %}
+              </div>
+            {% endif %}
+            <small class="form-text text-muted d-block mt-2">
+              <i class="bi bi-info-circle"></i>
+              Password must contain: uppercase, lowercase, numbers, and special characters (!@#$%^&*)
+            </small>
+          </div>
+
+          <div class="mb-3">
+            <label for="{{ form.password2.id_for_label }}" class="form-label">Confirm Password</label>
+            {{ form.password2 }}
+            {% if form.password2.errors %}
+              <div class="text-danger small mt-1">{{ form.password2.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-person-plus me-2"></i>Create Account
+            </button>
+          </div>
+        </form>
+
+        <hr>
+        <p class="text-center mb-0">
+          Already have an account? <a href="{% url 'login' %}">Sign In</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  body.login-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1B4F8A, #0E7C7B);
+  }
+  .login-page .login-box {
+    width: 100%;
+    max-width: 420px;
+  }
+  .login-logo a {
+    color: #fff;
+    font-size: 2rem;
+    font-weight: 700;
+  }
+  .login-page .card {
+    border: none;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+</style>
+
+<script>
+  document.body.classList.add('login-page');
+  document.querySelector('.app-wrapper').style.display = 'none';
+  document.querySelector('.navbar').style.display = 'none';
+  document.querySelector('aside').style.display = 'none';
+  document.querySelector('footer').style.display = 'none';
+</script>
+{% endblock %}

@@ -3,7 +3,7 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
-from .forms import LoginForm, StaffCreationForm, StaffEditForm
+from .forms import LoginForm, StaffCreationForm, StaffEditForm, RegistrationForm
 from .models import User
 from .role_access import dashboard_url_for_user
 
@@ -19,6 +19,17 @@ def login_view(request):
         next_url = request.GET.get('next', '')
         return redirect(next_url or dashboard_url_for_user(user))
     return render(request, 'accounts/login.html', {'form': form})
+
+
+def register_view(request):
+    if request.user.is_authenticated:
+        return redirect(dashboard_url_for_user(request.user))
+    form = RegistrationForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        user = form.save()
+        messages.success(request, 'Account created successfully! You can now login.')
+        return redirect('login')
+    return render(request, 'accounts/register.html', {'form': form})
 
 
 def logout_view(request):
