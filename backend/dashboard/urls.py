@@ -11,4 +11,7 @@ urlpatterns = [
     # Notification API endpoints
     path('api/notification/<int:notification_id>/read/', views_api.mark_notification_read, name='mark_notification_read'),
     path('api/preferences/dark-mode/', views_api.toggle_dark_mode, name='toggle_dark_mode'),
+    # Shift API endpoints
+    path('api/shifts/current/', views_api.UserShiftView.as_view(), name='get_current_shift'),
+    path('api/shifts/set/', views_api.UserShiftView.as_view(), name='set_user_shift'),
 ]

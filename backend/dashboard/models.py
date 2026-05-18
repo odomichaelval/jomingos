@@ -139,3 +139,93 @@ class DashboardActivity(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.created_at}"
+
+
+class UserShift(models.Model):
+    """Track individual user shift times"""
+    SHIFT_TYPES = [
+        ('day', 'Day Shift (7am - 7pm)'),
+        ('night', 'Night Shift (7pm - 7am)'),
+        ('custom', 'Custom Hours'),
+    ]
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='active_shift')
+    shift_type = models.CharField(max_length=20, choices=SHIFT_TYPES, default='day')
+    start_time = models.TimeField(default='07:00', help_text="Shift start time (HH:MM)")
+    end_time = models.TimeField(default='19:00', help_text="Shift end time (HH:MM)")
+    shift_date = models.DateField(auto_now=True, help_text="Date of the shift")
+    is_active = models.BooleanField(default=True, help_text="Is this shift currently active?")
+    notes = models.TextField(blank=True, help_text="Any notes about the shift")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = 'User Shifts'
+        unique_together = ['user', 'shift_date']
+        ordering = ['-shift_date']
+        indexes = [
+            models.Index(fields=['user', '-shift_date']),
+            models.Index(fields=['user', 'is_active']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.shift_type} ({self.shift_date})"
+
+    @property
+    def shift_end_datetime(self):
+        """Get shift end as datetime for comparison"""
+        from datetime import datetime, time
+        from django.utils import timezone
+
+        dt = datetime.combine(self.shift_date, self.end_time)
+        # Make timezone-aware
+        return timezone.make_aware(dt, timezone.get_current_timezone())
+
+    @property
+    def shift_start_datetime(self):
+        """Get shift start as datetime for comparison"""
+        from datetime import datetime
+        from django.utils import timezone
+
+        dt = datetime.combine(self.shift_date, self.start_time)
+        # Make timezone-aware
+        return timezone.make_aware(dt, timezone.get_current_timezone())
+
+    @property
+    def time_remaining_minutes(self):
+        """Calculate minutes remaining in shift"""
+        from django.utils import timezone
+
+        now = timezone.now()
+        if now > self.shift_end_datetime:
+            return 0
+
+        delta = self.shift_end_datetime - now
+        return int(delta.total_seconds() / 60)
+
+    @property
+    def time_remaining_formatted(self):
+        """Format time remaining as HH:MM"""
+        minutes = self.time_remaining_minutes
+        hours = minutes // 60
+        mins = minutes % 60
+        return f"{hours:02d}:{mins:02d}"
+
+    @property
+    def shift_progress_percent(self):
+        """Calculate shift progress as percentage"""
+        from django.utils import timezone
+
+        now = timezone.now()
+        start = self.shift_start_datetime
+        end = self.shift_end_datetime
+
+        if now >= end:
+            return 100
+        if now <= start:
+            return 0
+
+        total_duration = (end - start).total_seconds()
+        elapsed = (now - start).total_seconds()
+
+        return int((elapsed / total_duration) * 100) if total_duration > 0 else 0

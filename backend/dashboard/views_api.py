@@ -11,13 +11,13 @@ from rest_framework.decorators import api_view, permission_classes
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
-from datetime import timedelta
+from datetime import timedelta, datetime, time
 from accounts.models import User
 from patients.models import Patient
 from care_notes.models import CareNote
 from medications.models import Medication
 from vitals.models import VitalSigns
-from .models import DashboardNotification, DashboardPreference
+from .models import DashboardNotification, DashboardPreference, UserShift
 
 
 ROLE_ROUTE_MAP = {
@@ -164,3 +164,94 @@ def toggle_dark_mode(request):
     pref.dark_mode = not pref.dark_mode
     pref.save()
     return JsonResponse({'dark_mode': pref.dark_mode})
+
+
+class UserShiftView(APIView):
+    """
+    API endpoint for user shift management
+    GET /api/shifts/current/ - Get current user's active shift
+    POST /api/shifts/set/ - Set or update user's shift
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Get current user's shift for today"""
+        today = timezone.localdate()
+        try:
+            shift = UserShift.objects.get(user=request.user, shift_date=today, is_active=True)
+            return Response({
+                'user': request.user.username,
+                'shift_type': shift.shift_type,
+                'start_time': shift.start_time.strftime('%H:%M'),
+                'end_time': shift.end_time.strftime('%H:%M'),
+                'time_remaining_minutes': shift.time_remaining_minutes,
+                'time_remaining_formatted': shift.time_remaining_formatted,
+                'progress_percent': shift.shift_progress_percent,
+                'notes': shift.notes,
+            })
+        except UserShift.DoesNotExist:
+            # Return default shift if none exists
+            now = timezone.now()
+            hour = now.hour
+
+            if 7 <= hour < 19:
+                shift_type = 'day'
+                start_time = '07:00'
+                end_time = '19:00'
+            else:
+                shift_type = 'night'
+                start_time = '19:00'
+                end_time = '07:00'
+
+            return Response({
+                'user': request.user.username,
+                'shift_type': shift_type,
+                'start_time': start_time,
+                'end_time': end_time,
+                'time_remaining_minutes': 0,
+                'time_remaining_formatted': '00:00',
+                'progress_percent': 0,
+                'notes': 'No shift scheduled',
+            })
+
+    def post(self, request):
+        """Create or update user's shift"""
+        shift_type = request.data.get('shift_type', 'day')
+        start_time_str = request.data.get('start_time', '07:00')
+        end_time_str = request.data.get('end_time', '19:00')
+        notes = request.data.get('notes', '')
+
+        try:
+            # Parse time strings
+            start_time = datetime.strptime(start_time_str, '%H:%M').time()
+            end_time = datetime.strptime(end_time_str, '%H:%M').time()
+        except ValueError:
+            return Response(
+                {'error': 'Invalid time format. Use HH:MM format.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        today = timezone.localdate()
+
+        # Create or update shift
+        shift, created = UserShift.objects.update_or_create(
+            user=request.user,
+            shift_date=today,
+            defaults={
+                'shift_type': shift_type,
+                'start_time': start_time,
+                'end_time': end_time,
+                'notes': notes,
+                'is_active': True,
+            }
+        )
+
+        return Response({
+            'success': True,
+            'message': 'Shift scheduled successfully',
+            'shift_type': shift.shift_type,
+            'start_time': shift.start_time.strftime('%H:%M'),
+            'end_time': shift.end_time.strftime('%H:%M'),
+            'time_remaining_minutes': shift.time_remaining_minutes,
+            'time_remaining_formatted': shift.time_remaining_formatted,
+        }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)

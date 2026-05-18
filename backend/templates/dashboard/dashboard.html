@@ -689,18 +689,211 @@
 <div class="app-content">
   <div class="container-fluid">
 
-    <!-- Feature 3: Shift Status Indicator -->
-    <div class="shift-status-card {% if shift_info.type == 'day' %}day-shift{% else %}night-shift{% endif %}">
-      <div class="shift-label">Current Shift</div>
-      <div class="shift-title">{{ shift_info.label }}</div>
-      <div class="shift-progress-bar">
-        <div class="shift-progress-fill" style="width: {{ shift_info.progress }}%;"></div>
+    <!-- Feature 3: Shift Status Indicator with Live Countdown -->
+    <div class="shift-status-card {% if shift_info.type == 'day' %}day-shift{% else %}night-shift{% endif %}" id="shiftStatusCard">
+      <div class="shift-header">
+        <div>
+          <div class="shift-label">Current Shift</div>
+          <div class="shift-title">{{ shift_info.label }}</div>
+        </div>
+        <div class="shift-times">
+          <div class="shift-time-badge">
+            <i class="bi bi-clock"></i>
+            <span id="shiftStartTime">{{ shift_info.start|time:"H:i" }}</span>
+          </div>
+          <div class="shift-time-badge end">
+            <i class="bi bi-clock"></i>
+            <span id="shiftEndTime">{{ shift_info.end|time:"H:i" }}</span>
+          </div>
+        </div>
       </div>
-      <div class="shift-time-info">
-        <i class="bi bi-clock-history"></i>
-        {{ shift_info.time_remaining_hours|floatformat:1 }} hours remaining
+
+      <div class="shift-progress-bar">
+        <div class="shift-progress-fill" id="shiftProgressFill" style="width: {{ shift_info.progress }}%;"></div>
+      </div>
+
+      <div class="shift-countdown-container">
+        <div class="countdown-timer" id="countdownTimer">
+          <div class="countdown-display">
+            <span class="countdown-value" id="countdownHours">0</span>
+            <span class="countdown-separator">:</span>
+            <span class="countdown-value" id="countdownMinutes">00</span>
+            <span class="countdown-separator">:</span>
+            <span class="countdown-value" id="countdownSeconds">00</span>
+          </div>
+          <div class="countdown-label">Time until end of shift</div>
+        </div>
+
+        <div class="shift-info-compact">
+          <div class="info-item">
+            <i class="bi bi-percent"></i>
+            <span id="shiftProgressPercent">{{ shift_info.progress }}%</span> complete
+          </div>
+        </div>
       </div>
     </div>
+
+    <style>
+      .shift-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+      }
+
+      .shift-times {
+        display: flex;
+        gap: 0.75rem;
+      }
+
+      .shift-time-badge {
+        background: rgba(255, 255, 255, 0.15);
+        padding: 0.5rem 0.875rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        color: rgba(255, 255, 255, 0.9);
+        transition: background 0.3s ease;
+      }
+
+      .shift-time-badge:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .shift-time-badge i {
+        opacity: 0.8;
+      }
+
+      .shift-countdown-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-top: 1.5rem;
+        align-items: center;
+      }
+
+      @media (max-width: 768px) {
+        .shift-countdown-container {
+          grid-template-columns: 1fr;
+          gap: 1rem;
+        }
+
+        .shift-header {
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
+        .shift-times {
+          width: 100%;
+          justify-content: flex-start;
+        }
+      }
+
+      .countdown-timer {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        text-align: center;
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+      }
+
+      .countdown-display {
+        font-size: 2.5rem;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        color: rgba(255, 255, 255, 0.95);
+        font-family: 'Courier New', monospace;
+        line-height: 1.2;
+        margin-bottom: 0.5rem;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      }
+
+      .countdown-value {
+        display: inline-block;
+        min-width: 3rem;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+      }
+
+      .countdown-separator {
+        margin: 0 0.25rem;
+        opacity: 0.8;
+      }
+
+      .countdown-label {
+        font-size: 0.875rem;
+        color: rgba(255, 255, 255, 0.75);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 0.75rem;
+        font-weight: 500;
+      }
+
+      .shift-info-compact {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 1rem 1.5rem;
+        border-radius: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        justify-content: center;
+      }
+
+      .info-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.95rem;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .info-item i {
+        font-size: 1.125rem;
+        opacity: 0.85;
+      }
+
+      /* Pulsing animation when close to shift end */
+      .countdown-timer.shift-ending .countdown-value {
+        animation: pulse-end 1s ease-in-out infinite;
+      }
+
+      @keyframes pulse-end {
+        0%, 100% {
+          box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.2);
+        }
+        50% {
+          box-shadow: 0 0 0 8px rgba(255, 255, 255, 0.05);
+        }
+      }
+
+      /* Dark mode adjustments */
+      .dark-mode .countdown-timer {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .dark-mode .countdown-value {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+
+      .dark-mode .shift-info-compact {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .dark-mode .shift-time-badge {
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      .dark-mode .shift-time-badge:hover {
+        background: rgba(255, 255, 255, 0.18);
+      }
+    </style>
 
     <!-- Feature 1: Animated Statistics Cards -->
     <div class="row g-3 mb-4">
@@ -1074,6 +1267,96 @@
   document.querySelectorAll('.stat-value').forEach(element => {
     animateCounter(element);
   });
+
+  // Live shift countdown timer
+  function initializeShiftCountdown() {
+    const shiftEndTimeStr = document.getElementById('shiftEndTime')?.textContent;
+    if (!shiftEndTimeStr) return;
+
+    function updateCountdown() {
+      const now = new Date();
+      const [endHours, endMinutes] = shiftEndTimeStr.split(':').map(Number);
+
+      // Create end time for today
+      let shiftEnd = new Date();
+      shiftEnd.setHours(endHours, endMinutes, 0, 0);
+
+      // If shift end is in the past, it's for tomorrow (night shift)
+      if (shiftEnd < now) {
+        shiftEnd.setDate(shiftEnd.getDate() + 1);
+      }
+
+      const diff = shiftEnd - now;
+
+      if (diff <= 0) {
+        // Shift has ended
+        document.getElementById('countdownHours').textContent = '0';
+        document.getElementById('countdownMinutes').textContent = '00';
+        document.getElementById('countdownSeconds').textContent = '00';
+        document.getElementById('countdownTimer').classList.add('shift-ending');
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      document.getElementById('countdownHours').textContent = hours;
+      document.getElementById('countdownMinutes').textContent = String(minutes).padStart(2, '0');
+      document.getElementById('countdownSeconds').textContent = String(seconds).padStart(2, '0');
+
+      // Add pulsing effect when 1 hour or less remaining
+      const countdownElement = document.getElementById('countdownTimer');
+      if (hours === 0 && minutes <= 60) {
+        countdownElement.classList.add('shift-ending');
+      } else {
+        countdownElement.classList.remove('shift-ending');
+      }
+    }
+
+    // Update immediately on load
+    updateCountdown();
+
+    // Update every second
+    setInterval(updateCountdown, 1000);
+  }
+
+  // Fetch user's current shift from API and update
+  function updateShiftFromAPI() {
+    fetch('/api/shifts/current/', {
+      headers: {
+        'Authorization': 'Bearer ' + (document.querySelector('[data-auth-token]')?.getAttribute('data-auth-token') || '')
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.shift_type) {
+        // Update times if we got fresh data
+        if (data.start_time) {
+          document.getElementById('shiftStartTime').textContent = data.start_time;
+        }
+        if (data.end_time) {
+          document.getElementById('shiftEndTime').textContent = data.end_time;
+          // Reinitialize countdown with new time
+          initializeShiftCountdown();
+        }
+        if (data.progress_percent !== undefined) {
+          document.getElementById('shiftProgressFill').style.width = data.progress_percent + '%';
+          document.getElementById('shiftProgressPercent').textContent = data.progress_percent + '%';
+        }
+      }
+    })
+    .catch(error => console.log('Using cached shift times'));
+  }
+
+  // Initialize countdown on page load
+  if (document.getElementById('shiftEndTime')) {
+    initializeShiftCountdown();
+    // Try to fetch fresh data from API
+    updateShiftFromAPI();
+    // Refresh from API every 5 minutes
+    setInterval(updateShiftFromAPI, 5 * 60 * 1000);
+  }
 
   // Chart configurations
   const chartOptions = {
