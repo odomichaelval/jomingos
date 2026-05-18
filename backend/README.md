@@ -95,35 +95,6 @@ Different custom dashboards for:
 | User Authentication | ✅ Complete | JWT-based, role-based access control |
 | Admin Panel | ✅ Complete | Django admin with customization |
 
-**All features are production-ready and deployed.**
-
----
-
-## Quick Deployment (Render - 15 Minutes)
-
-⚡ **Fastest way to get live:** See **[DEPLOYMENT_QUICK_START.md](DEPLOYMENT_QUICK_START.md)** for step-by-step guide
-
-**Key steps:**
-1. Push code to GitHub ✓
-2. Create Render account
-3. Set up PostgreSQL database
-4. Create Web Service
-5. Add environment variables
-6. Done - you're live!
-
-See the full deployment guide for detailed instructions, environment variable setup, and troubleshooting.
-
-## Tech Stack
-
-- **Django 4.2** - Web framework
-- **Django REST Framework** - REST API
-- **PostgreSQL/SQLite** - Database
-- **Chart.js** - Interactive charts
-- **JWT** - Secure authentication
-- **Gunicorn** - Production WSGI server
-- **Render/Heroku** - Cloud hosting (free tier available)
-
-
 ## Project Structure
 
 ```
