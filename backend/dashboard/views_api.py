@@ -5,7 +5,7 @@ Provides summary statistics and role-scoped dashboard payloads.
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from django.utils import timezone
@@ -56,7 +56,7 @@ class DashboardStatsView(APIView):
     API endpoint for dashboard statistics
     GET /api/dashboard/stats/
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     
     def get(self, request):
         """Return summary statistics for the dashboard"""
