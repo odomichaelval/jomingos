@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import views, views_api
 
 urlpatterns = [
     path('dashboard/admin/', views.admin_dashboard, name='role_dashboard_admin'),
@@ -8,4 +8,7 @@ urlpatterns = [
     path('dashboard/care-assistant/', views.care_assistant_dashboard, name='role_dashboard_care_assistant'),
     path('', views.dashboard, name='dashboard'),
     path('handover/', views.shift_handover, name='shift_handover'),
+    # Notification API endpoints
+    path('api/notification/<int:notification_id>/read/', views_api.mark_notification_read, name='mark_notification_read'),
+    path('api/preferences/dark-mode/', views_api.toggle_dark_mode, name='toggle_dark_mode'),
 ]

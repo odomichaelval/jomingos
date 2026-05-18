@@ -7,13 +7,17 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
 from datetime import timedelta
 from accounts.models import User
 from patients.models import Patient
 from care_notes.models import CareNote
 from medications.models import Medication
 from vitals.models import VitalSigns
+from .models import DashboardNotification, DashboardPreference
 
 
 ROLE_ROUTE_MAP = {
@@ -140,3 +144,23 @@ class RoleDashboardView(APIView):
             ],
         }
         return Response(payload)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mark_notification_read(request, notification_id):
+    """Mark a notification as read"""
+    notification = get_object_or_404(DashboardNotification, id=notification_id, user=request.user)
+    notification.is_read = True
+    notification.save()
+    return JsonResponse({'status': 'success'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def toggle_dark_mode(request):
+    """Toggle dark mode preference for user"""
+    pref, created = DashboardPreference.objects.get_or_create(user=request.user)
+    pref.dark_mode = not pref.dark_mode
+    pref.save()
+    return JsonResponse({'dark_mode': pref.dark_mode})

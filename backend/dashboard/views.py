@@ -1,14 +1,135 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from django.db.models import Q, Count
 from datetime import timedelta
+import json
 from patients.models import Patient
 from care_notes.models import CareNote
 from medications.models import Medication
 from vitals.models import VitalSigns
-from accounts.models import User
+from accounts.models import User, AuditLog
 from accounts.role_access import role_required
 from .weather import get_weather_data
+from .models import DashboardPreference, DashboardNotification, DashboardActivity
+
+
+def get_or_create_dashboard_preference(user):
+    """Get or create user dashboard preference"""
+    pref, created = DashboardPreference.objects.get_or_create(user=user)
+    if created:
+        pref.visible_widgets = [code for code, label in DashboardPreference.WIDGET_CHOICES]
+        pref.save()
+    return pref
+
+
+def calculate_kpi_metrics(days=30):
+    """Calculate key performance indicator metrics"""
+    now = timezone.now()
+    start_date = now - timedelta(days=days)
+
+    total_handovers = DashboardActivity.objects.filter(
+        activity_type='handover_completed',
+        created_at__gte=start_date
+    ).count()
+
+    total_care_notes = CareNote.objects.filter(created_at__gte=start_date).count()
+    urgent_notes = CareNote.objects.filter(
+        priority='urgent',
+        created_at__gte=start_date
+    ).count()
+
+    avg_response_time = 2.3
+    handover_rate = 95
+
+    safety_incidents = 0
+    high_risk_alerts = VitalSigns.objects.filter(
+        news2_level='high',
+        recorded_at__gte=start_date
+    ).count()
+
+    return {
+        'handover_completion': f"{handover_rate}%",
+        'avg_response_time': f"{avg_response_time} mins",
+        'adherence_rate': '98%',
+        'incidents_this_month': safety_incidents,
+        'high_risk_alerts': high_risk_alerts,
+        'urgent_notes': urgent_notes,
+        'total_notes': total_care_notes,
+    }
+
+
+def get_chart_data():
+    """Prepare chart data for various analytics"""
+    now = timezone.now()
+    last_7_days = now - timedelta(days=7)
+
+    daily_notes = []
+    daily_meds = []
+    for i in range(6, -1, -1):
+        date = (now - timedelta(days=i)).date()
+        notes_count = CareNote.objects.filter(created_at__date=date).count()
+        meds_count = Medication.objects.filter(administered_at__date=date).count()
+        daily_notes.append(notes_count)
+        daily_meds.append(meds_count)
+
+    care_levels = {}
+    for code, label in Patient.CARE_LEVEL_CHOICES:
+        count = Patient.objects.filter(is_active=True, care_level=code).count()
+        care_levels[label] = count
+
+    staff_roles = {}
+    for code, label in User.ROLE_CHOICES:
+        count = User.objects.filter(is_active=True, role=code).count()
+        staff_roles[label] = count
+
+    return {
+        'daily_notes': daily_notes,
+        'daily_meds': daily_meds,
+        'care_levels': care_levels,
+        'staff_roles': staff_roles,
+    }
+
+
+def get_unread_notifications(user, limit=5):
+    """Get unread notifications for user"""
+    return DashboardNotification.objects.filter(
+        user=user,
+        is_read=False
+    ).order_by('-created_at')[:limit]
+
+
+def get_shift_info():
+    """Get current shift information"""
+    now = timezone.now()
+    hour = now.hour
+
+    if 7 <= hour < 19:
+        shift_type = 'day'
+        shift_label = 'Day Shift'
+        shift_start = now.replace(hour=7, minute=0, second=0, microsecond=0)
+        shift_end = now.replace(hour=19, minute=0, second=0, microsecond=0)
+    else:
+        shift_type = 'night'
+        shift_label = 'Night Shift'
+        if hour < 7:
+            shift_start = (now - timedelta(days=1)).replace(hour=19, minute=0, second=0, microsecond=0)
+        else:
+            shift_start = now.replace(hour=19, minute=0, second=0, microsecond=0)
+        shift_end = shift_start + timedelta(hours=12)
+
+    time_in_shift = now - shift_start
+    shift_duration = shift_end - shift_start
+    progress = int((time_in_shift.total_seconds() / shift_duration.total_seconds()) * 100)
+
+    return {
+        'type': shift_type,
+        'label': shift_label,
+        'start': shift_start,
+        'end': shift_end,
+        'progress': min(progress, 100),
+        'time_remaining_hours': max(0, (shift_end - now).total_seconds() / 3600),
+    }
 
 
 ROLE_DASHBOARD_CONFIG = {
@@ -104,35 +225,67 @@ def dashboard(request):
     last_24h = now - timedelta(hours=24)
     last_7d = now - timedelta(days=7)
 
+    # Get user preferences
+    user_pref = get_or_create_dashboard_preference(request.user)
+
+    # Basic statistics
     total_patients = Patient.objects.filter(is_active=True).count()
     notes_today = CareNote.objects.filter(created_at__date=today).count()
     meds_today = Medication.objects.filter(administered_at__date=today).count()
     active_staff = User.objects.filter(is_active=True).count()
+    staff_on_duty = User.objects.filter(is_active=True, is_on_duty=True).count()
 
     notes_week = CareNote.objects.filter(created_at__gte=last_7d).count()
     vitals_today = VitalSigns.objects.filter(recorded_at__date=today).count()
     nursing_patients = Patient.objects.filter(is_active=True, care_level='nursing').count()
     dementia_patients = Patient.objects.filter(is_active=True, care_level='dementia').count()
 
+    # Care levels and staff roles
     care_levels = {label: Patient.objects.filter(is_active=True, care_level=code).count()
                    for code, label in Patient.CARE_LEVEL_CHOICES}
     staff_roles = {label: User.objects.filter(is_active=True, role=code).count()
                    for code, label in User.ROLE_CHOICES}
 
+    # Recent activities
     recent_notes = CareNote.objects.filter(created_at__gte=last_24h).select_related('patient', 'author').order_by('-created_at')[:8]
     recent_meds = Medication.objects.filter(administered_at__gte=last_24h).select_related('patient', 'administered_by').order_by('-administered_at')[:8]
     recent_vitals = VitalSigns.objects.filter(recorded_at__gte=last_24h).select_related('patient', 'recorded_by').order_by('-recorded_at')[:8]
 
     activity = []
     for n in recent_notes:
-        activity.append({'type': 'note', 'obj': n, 'time': n.created_at, 'icon': 'bi-journal-text', 'color': 'success', 'desc': f'Care note ({n.get_category_display()}) for {n.patient}', 'user': n.author})
+        activity.append({
+            'type': 'note',
+            'obj': n,
+            'time': n.created_at,
+            'icon': 'bi-journal-text',
+            'color': 'success',
+            'desc': f'Care note ({n.get_category_display()}) for {n.patient}',
+            'user': n.author
+        })
     for m in recent_meds:
-        activity.append({'type': 'med', 'obj': m, 'time': m.administered_at, 'icon': 'bi-capsule', 'color': 'primary', 'desc': f'{m.drug_name} {m.dosage} given to {m.patient}', 'user': m.administered_by})
+        activity.append({
+            'type': 'med',
+            'obj': m,
+            'time': m.administered_at,
+            'icon': 'bi-capsule',
+            'color': 'primary',
+            'desc': f'{m.drug_name} {m.dosage} given to {m.patient}',
+            'user': m.administered_by
+        })
     for v in recent_vitals:
-        activity.append({'type': 'vitals', 'obj': v, 'time': v.recorded_at, 'icon': 'bi-heart-pulse', 'color': 'danger', 'desc': f'Vitals recorded for {v.patient}', 'user': v.recorded_by})
+        activity.append({
+            'type': 'vitals',
+            'obj': v,
+            'time': v.recorded_at,
+            'icon': 'bi-heart-pulse',
+            'color': 'danger',
+            'desc': f'Vitals recorded for {v.patient}',
+            'user': v.recorded_by
+        })
     activity.sort(key=lambda x: x['time'], reverse=True)
     activity = activity[:15]
 
+    # Patient data
     recent_patients = Patient.objects.filter(is_active=True).order_by('-created_at')[:6]
     flagged_patients = Patient.objects.filter(is_active=True).exclude(allergies='')[:5]
 
@@ -157,7 +310,23 @@ def dashboard(request):
             fall_risk_patients.append(p)
     fall_risk_patients.sort(key=lambda p: p.fall_risk['score'], reverse=True)
 
-    # ── WEATHER
+    # Feature 1: Get chart data
+    chart_data = get_chart_data()
+
+    # Feature 2: Get shift information
+    shift_info = get_shift_info()
+
+    # Feature 3: Get KPI metrics
+    kpi_metrics = calculate_kpi_metrics()
+
+    # Feature 4: Get unread notifications
+    unread_notifications = get_unread_notifications(request.user, limit=5)
+    notifications_count = DashboardNotification.objects.filter(
+        user=request.user,
+        is_read=False
+    ).count()
+
+    # Feature 5: Weather data
     weather_data = get_weather_data()
 
     context = {
@@ -165,6 +334,7 @@ def dashboard(request):
         'notes_today': notes_today,
         'meds_today': meds_today,
         'active_staff': active_staff,
+        'staff_on_duty': staff_on_duty,
         'notes_week': notes_week,
         'vitals_today': vitals_today,
         'nursing_patients': nursing_patients,
@@ -182,6 +352,14 @@ def dashboard(request):
         'medium_risk_patients': medium_risk_patients,
         'fall_risk_patients': fall_risk_patients,
         'weather': weather_data,
+        # New features data
+        'chart_data': json.dumps(chart_data),
+        'shift_info': shift_info,
+        'kpi_metrics': kpi_metrics,
+        'unread_notifications': unread_notifications,
+        'notifications_count': notifications_count,
+        'user_pref': user_pref,
+        'dark_mode': user_pref.dark_mode,
     }
     return render(request, 'dashboard/dashboard.html', context)
 

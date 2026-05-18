@@ -3,42 +3,684 @@
 {% block nav_dashboard %}active{% endblock %}
 
 {% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.css" rel="stylesheet">
 <style>
-  .small-box .inner h3 {
-    font-size: 2.2rem;
-    font-weight: 800;
+  :root {
+    --primary-color: #0d6efd;
+    --danger-color: #dc3545;
+    --success-color: #198754;
+    --warning-color: #ffc107;
+    --dark-color: #212529;
+    --light-color: #f8f9fa;
+    --text-muted: #6c757d;
+    --border-radius: 8px;
+    --transition: all 0.3s ease;
+    --box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --box-shadow-hover: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
   }
 
-  .activity-feed .feed-item {
-    padding: .6rem 0;
-    border-bottom: 1px solid rgba(0, 0, 0, .05);
+  body {
+    background-color: #f5f7fa;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   }
 
-  .activity-feed .feed-item:last-child {
+  body.dark-mode {
+    background-color: #1a1d23;
+    color: #e0e0e0;
+  }
+
+  /* Animated number counter */
+  .stat-card {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+    transition: var(--transition);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  body.dark-mode .stat-card {
+    background: #2d3139;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .stat-card:hover {
+    box-shadow: var(--box-shadow-hover);
+    transform: translateY(-2px);
+  }
+
+  .stat-card .stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0.5rem 0;
+    color: var(--primary-color);
+  }
+
+  .stat-card .stat-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .stat-card .stat-icon {
+    font-size: 2rem;
+    opacity: 0.3;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Shift status indicator */
+  .shift-status-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+    margin-bottom: 1.5rem;
+  }
+
+  .shift-status-card.day-shift {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  }
+
+  .shift-status-card.night-shift {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  }
+
+  .shift-label {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+  }
+
+  .shift-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+
+  .shift-progress-bar {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+  }
+
+  .shift-progress-fill {
+    height: 100%;
+    background: white;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+  }
+
+  .shift-time-info {
+    font-size: 0.9rem;
+    opacity: 0.95;
+  }
+
+  /* Notification center */
+  .notification-bell {
+    position: relative;
+    cursor: pointer;
+    font-size: 1.3rem;
+    transition: var(--transition);
+  }
+
+  .notification-bell:hover {
+    color: var(--primary-color);
+  }
+
+  .notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: var(--danger-color);
+    color: white;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .notification-panel {
+    position: absolute;
+    top: 45px;
+    right: 0;
+    width: 380px;
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow-hover);
+    z-index: 1000;
+    max-height: 400px;
+    overflow-y: auto;
+    display: none;
+  }
+
+  body.dark-mode .notification-panel {
+    background: #2d3139;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .notification-panel.active {
+    display: block;
+  }
+
+  .notification-item {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    transition: var(--transition);
+    cursor: pointer;
+  }
+
+  body.dark-mode .notification-item {
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .notification-item:hover {
+    background: #f8f9fa;
+  }
+
+  body.dark-mode .notification-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .notification-item.unread {
+    background: rgba(13, 110, 253, 0.05);
+  }
+
+  .notification-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .notification-message {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .notification-time {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  /* KPI Cards */
+  .kpi-card {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+    border-left: 4px solid var(--primary-color);
+    transition: var(--transition);
+  }
+
+  body.dark-mode .kpi-card {
+    background: #2d3139;
+  }
+
+  .kpi-card:hover {
+    box-shadow: var(--box-shadow-hover);
+  }
+
+  .kpi-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin: 0.5rem 0;
+  }
+
+  .kpi-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .kpi-card.success {
+    border-left-color: var(--success-color);
+  }
+
+  .kpi-card.success .kpi-value {
+    color: var(--success-color);
+  }
+
+  .kpi-card.warning {
+    border-left-color: var(--warning-color);
+  }
+
+  .kpi-card.warning .kpi-value {
+    color: var(--warning-color);
+  }
+
+  .kpi-card.danger {
+    border-left-color: var(--danger-color);
+  }
+
+  .kpi-card.danger .kpi-value {
+    color: var(--danger-color);
+  }
+
+  /* Chart containers */
+  .chart-container {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+    margin-bottom: 1.5rem;
+  }
+
+  body.dark-mode .chart-container {
+    background: #2d3139;
+  }
+
+  .chart-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: var(--dark-color);
+  }
+
+  body.dark-mode .chart-title {
+    color: #e0e0e0;
+  }
+
+  .chart-wrapper {
+    position: relative;
+    height: 300px;
+  }
+
+  /* Patient cards */
+  .patient-card {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 1.25rem;
+    box-shadow: var(--box-shadow);
+    margin-bottom: 1rem;
+    transition: var(--transition);
+    border-left: 4px solid var(--primary-color);
+  }
+
+  body.dark-mode .patient-card {
+    background: #2d3139;
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .patient-card:hover {
+    box-shadow: var(--box-shadow-hover);
+    transform: translateX(4px);
+  }
+
+  .patient-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.8rem;
+    gap: 1rem;
+  }
+
+  .patient-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .patient-info {
+    flex: 1;
+  }
+
+  .patient-name {
+    font-weight: 600;
+    color: var(--dark-color);
+    margin-bottom: 0.3rem;
+  }
+
+  body.dark-mode .patient-name {
+    color: #e0e0e0;
+  }
+
+  .patient-meta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .patient-action {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .patient-action .btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  /* Quick actions */
+  .quick-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    border: 2px solid rgba(0, 0, 0, 0.08);
+    background: white;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--dark-color);
+    text-decoration: none;
+  }
+
+  body.dark-mode .quick-action-btn {
+    background: #2d3139;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #e0e0e0;
+  }
+
+  .quick-action-btn:hover {
+    border-color: var(--primary-color);
+    background: rgba(13, 110, 253, 0.05);
+    transform: translateY(-2px);
+  }
+
+  .quick-action-icon {
+    font-size: 1.8rem;
+    color: var(--primary-color);
+  }
+
+  /* Dark mode toggle */
+  .theme-toggle {
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: var(--transition);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: white;
+  }
+
+  body.dark-mode .theme-toggle {
+    background: #2d3139;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .theme-toggle:hover {
+    background: var(--light-color);
+    transform: scale(1.05);
+  }
+
+  body.dark-mode .theme-toggle:hover {
+    background: #393f4a;
+  }
+
+  /* Header section */
+  .dashboard-header {
+    background: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+    box-shadow: var(--box-shadow);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  body.dark-mode .dashboard-header {
+    background: #2d3139;
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .dashboard-header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .dashboard-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--dark-color);
+  }
+
+  body.dark-mode .dashboard-title {
+    color: #e0e0e0;
+  }
+
+  .dashboard-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  /* Weather widget */
+  .weather-widget {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+  }
+
+  body.dark-mode .weather-widget {
+    background: #2d3139;
+  }
+
+  .weather-main {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .weather-icon {
+    font-size: 3rem;
+  }
+
+  .weather-temp {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--dark-color);
+  }
+
+  body.dark-mode .weather-temp {
+    color: #e0e0e0;
+  }
+
+  .weather-desc {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  /* High risk alert */
+  .high-risk-container {
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--box-shadow);
+    margin-bottom: 1.5rem;
+  }
+
+  .high-risk-header {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    padding: 1.25rem;
+    font-weight: 600;
+  }
+
+  .high-risk-list {
+    background: white;
+  }
+
+  body.dark-mode .high-risk-list {
+    background: #2d3139;
+  }
+
+  .risk-item {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  body.dark-mode .risk-item {
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .risk-item:last-child {
     border-bottom: none;
   }
 
-  .chart-container {
-    position: relative;
-    height: 220px;
+  /* Activity feed */
+  .activity-container {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+  }
+
+  body.dark-mode .activity-container {
+    background: #2d3139;
+  }
+
+  .activity-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .activity-item {
+    padding: 0.8rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    display: flex;
+    gap: 1rem;
+    font-size: 0.9rem;
+  }
+
+  body.dark-mode .activity-item {
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .activity-item:last-child {
+    border-bottom: none;
+  }
+
+  .activity-icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    margin-top: 0.2rem;
+  }
+
+  .activity-content {
+    flex: 1;
+  }
+
+  .activity-desc {
+    color: var(--dark-color);
+  }
+
+  body.dark-mode .activity-desc {
+    color: #e0e0e0;
+  }
+
+  .activity-time {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .stat-card {
+      padding: 1rem;
+    }
+
+    .stat-card .stat-value {
+      font-size: 2rem;
+    }
+
+    .chart-wrapper {
+      height: 250px;
+    }
+
+    .notification-panel {
+      width: 100vw;
+      right: -1rem;
+    }
+
+    .dashboard-header-content {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+
+    .dashboard-controls {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
+
+  /* Loading animation */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .animate-load {
+    animation: pulse 2s infinite;
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="app-content-header">
+<!-- Dashboard Header -->
+<div class="dashboard-header">
   <div class="container-fluid">
-    <div class="row align-items-center">
-      <div class="col-sm-6">
-        <h1 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h1>
+    <div class="dashboard-header-content">
+      <div>
+        <h1 class="dashboard-title">Clinical Dashboard</h1>
+        <small class="text-muted">Real-time operational overview</small>
       </div>
-      <div class="col-sm-6 d-flex justify-content-end align-items-center gap-2">
-        <a href="{% url 'shift_handover' %}?shift=day" class="btn btn-warning btn-sm">
-          <i class="bi bi-sun me-1"></i>Day Handover
-        </a>
-        <a href="{% url 'shift_handover' %}?shift=night" class="btn btn-dark btn-sm">
-          <i class="bi bi-moon-stars me-1"></i>Night Handover
-        </a>
+      <div class="dashboard-controls">
+        <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
+          <i class="bi bi-moon" id="themeIcon"></i>
+        </button>
+        <div class="notification-bell" id="notificationBell" title="Notifications">
+          <i class="bi bi-bell-fill"></i>
+          {% if notifications_count > 0 %}
+          <span class="notification-badge" id="notificationBadge">{{ notifications_count }}</span>
+          {% endif %}
+          <div class="notification-panel" id="notificationPanel">
+            {% if unread_notifications %}
+              {% for notif in unread_notifications %}
+              <div class="notification-item unread" onclick="markNotificationRead({{ notif.id }})">
+                <div class="notification-title">{{ notif.title }}</div>
+                <div class="notification-message">{{ notif.message }}</div>
+                <div class="notification-time">{{ notif.created_at|timesince }} ago</div>
+              </div>
+              {% endfor %}
+            {% else %}
+              <div style="padding: 2rem; text-align: center; color: #999;">
+                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">Bell is quiet</div>
+                <div style="font-size: 0.85rem;">No new notifications</div>
+              </div>
+            {% endif %}
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -47,737 +689,480 @@
 <div class="app-content">
   <div class="container-fluid">
 
-    <!-- SMALL BOX STAT CARDS -->
+    <!-- Feature 3: Shift Status Indicator -->
+    <div class="shift-status-card {% if shift_info.type == 'day' %}day-shift{% else %}night-shift{% endif %}">
+      <div class="shift-label">Current Shift</div>
+      <div class="shift-title">{{ shift_info.label }}</div>
+      <div class="shift-progress-bar">
+        <div class="shift-progress-fill" style="width: {{ shift_info.progress }}%;"></div>
+      </div>
+      <div class="shift-time-info">
+        <i class="bi bi-clock-history"></i>
+        {{ shift_info.time_remaining_hours|floatformat:1 }} hours remaining
+      </div>
+    </div>
+
+    <!-- Feature 1: Animated Statistics Cards -->
     <div class="row g-3 mb-4">
-      <div class="col-lg-3 col-6">
-        <div class="small-box text-bg-primary" style="border-radius:12px;">
-          <div class="inner">
-            <h3>{{ total_patients }}</h3>
-            <p>Active Patients</p>
-          </div>
-          <svg class="small-box-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" fill="currentColor">
-            <path
-              d="M224 256A128 128 0 1 0 224 0a128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3C0 498.7 13.3 512 29.7 512H418.3c10 0 18.8-5.2 23.8-13L224 304H178.3zm308.8-78.3l-120 48C358 277.4 352 286.2 352 296v16h-16c-17.7 0-32 14.3-32 32v208c0 17.7 14.3 32 32 32h288c17.7 0 32-14.3 32-32V344c0-17.7-14.3-32-32-32h-16v-16c0-9.8-6-18.6-15.1-22.3zM464 400c0-8.8 7.2-16 16-16s16 7.2 16 16v48c0 8.8-7.2 16-16 16s-16-7.2-16-16V400z" />
-          </svg>
-          <a href="{% url 'patient_list' %}"
-            class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
-            View all patients <i class="bi bi-arrow-right-circle ms-1"></i>
-          </a>
+      <div class="col-lg-3 col-md-6">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+          <div class="stat-label">Active Patients</div>
+          <div class="stat-value" data-value="{{ total_patients }}">0</div>
         </div>
       </div>
-      <div class="col-lg-3 col-6">
-        <div class="small-box text-bg-success" style="border-radius:12px;">
-          <div class="inner">
-            <h3>{{ notes_today }}</h3>
-            <p>Care Notes Today</p>
-          </div>
-          <svg class="small-box-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="currentColor">
-            <path
-              d="M64 32C28.7 32 0 60.7 0 96V416c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V96c0-35.3-28.7-64-64-64H64zm64 192c0-17.7 14.3-32 32-32H288c17.7 0 32 14.3 32 32s-14.3 32-32 32H160c-17.7 0-32-14.3-32-32zm0 96c0-17.7 14.3-32 32-32H288c17.7 0 32 14.3 32 32s-14.3 32-32 32H160c-17.7 0-32-14.3-32-32zm-32-160c-17.7 0-32-14.3-32-32V128c0-17.7 14.3-32 32-32s32 14.3 32 32v64c0 17.7-14.3 32-32 32z" />
-          </svg>
-          <a href="{% url 'patient_list' %}"
-            class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
-            Record care note <i class="bi bi-arrow-right-circle ms-1"></i>
-          </a>
+      <div class="col-lg-3 col-md-6">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="bi bi-journal-text"></i></div>
+          <div class="stat-label">Care Notes Today</div>
+          <div class="stat-value" data-value="{{ notes_today }}">0</div>
         </div>
       </div>
-      <div class="col-lg-3 col-6">
-        <div class="small-box text-bg-warning" style="border-radius:12px;">
-          <div class="inner">
-            <h3>{{ meds_today }}</h3>
-            <p>Medications Given Today</p>
-          </div>
-          <svg class="small-box-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512" fill="currentColor">
-            <path
-              d="M112 0C85.5 0 64 21.5 64 48V96H16C7.2 96 0 103.2 0 112v32c0 8.8 7.2 16 16 16H64V448c0 35.3 28.7 64 64 64H448c35.3 0 64-28.7 64-64V160h48c8.8 0 16-7.2 16-16V112c0-8.8-7.2-16-16-16H512V48c0-26.5-21.5-48-48-48H112zm32 200c0-13.3 10.7-24 24-24h64c13.3 0 24 10.7 24 24v64h64c13.3 0 24 10.7 24 24s-10.7 24-24 24H256v64c0 13.3-10.7 24-24 24s-24-10.7-24-24V312H144c-13.3 0-24-10.7-24-24s10.7-24 24-24h64V200z" />
-          </svg>
-          <a href="{% url 'patient_list' %}"
-            class="small-box-footer link-dark link-underline-opacity-0 link-underline-opacity-50-hover">
-            Log medication <i class="bi bi-arrow-right-circle ms-1"></i>
-          </a>
+      <div class="col-lg-3 col-md-6">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="bi bi-capsule"></i></div>
+          <div class="stat-label">Medications Given</div>
+          <div class="stat-value" data-value="{{ meds_today }}">0</div>
         </div>
       </div>
-      <div class="col-lg-3 col-6">
-        <div class="small-box text-bg-danger" style="border-radius:12px;">
-          <div class="inner">
-            <h3>{{ active_staff }}</h3>
-            <p>Staff Accounts</p>
+      <div class="col-lg-3 col-md-6">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="bi bi-person-badge"></i></div>
+          <div class="stat-label">Staff on Duty</div>
+          <div class="stat-value" data-value="{{ staff_on_duty }}">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature 2: Enhanced Weather Widget -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-9">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon"><i class="bi bi-heart-pulse"></i></div>
+              <div class="stat-label">Vitals Recorded</div>
+              <div class="stat-value" data-value="{{ vitals_today }}">0</div>
+            </div>
           </div>
-          <svg class="small-box-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" fill="currentColor">
-            <path
-              d="M144 0a80 80 0 1 1 0 160A80 80 0 1 1 144 0zM512 0a80 80 0 1 1 0 160A80 80 0 1 1 512 0zM0 298.7C0 239.8 47.8 192 106.7 192h42.7c15.9 0 31 3.5 44.6 9.7c-1.3 7.2-1.9 14.7-1.9 22.3c0 38.2 16.8 72.5 43.3 96c-.2 0-.4 0-.7 0H21.3C9.6 320 0 310.4 0 298.7zM405.3 320c-.2 0-.4 0-.7 0c26.6-23.5 43.3-57.8 43.3-96c0-7.6-.7-15-1.9-22.3c13.6-6.3 28.7-9.7 44.6-9.7h42.7C592.2 192 640 239.8 640 298.7c0 11.8-9.6 21.3-21.3 21.3H405.3zM224 224a96 96 0 1 1 192 0 96 96 0 1 1 -192 0zM128 485.3C128 411.7 187.7 352 261.3 352H378.7C452.3 352 512 411.7 512 485.3c0 14.7-11.9 26.7-26.7 26.7H154.7c-14.7 0-26.7-11.9-26.7-26.7z" />
-          </svg>
-          {% if request.user.is_admin %}
-          <a href="{% url 'staff_list' %}"
-            class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
-            Manage staff <i class="bi bi-arrow-right-circle ms-1"></i>
-          </a>
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon"><i class="bi bi-hospital"></i></div>
+              <div class="stat-label">Nursing Care</div>
+              <div class="stat-value" data-value="{{ nursing_patients }}">0</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon"><i class="bi bi-person-heart"></i></div>
+              <div class="stat-label">Dementia Care</div>
+              <div class="stat-value" data-value="{{ dementia_patients }}">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-3">
+        <div class="weather-widget">
+          {% if weather.current_temp %}
+          <div class="weather-main">
+            <div class="weather-icon"><i class="bi bi-cloud-sun"></i></div>
+            <div>
+              <div class="weather-temp">{{ weather.current_temp }}C</div>
+              <div class="weather-desc">{{ weather.description }}</div>
+            </div>
+          </div>
+          <div style="font-size: 0.85rem; color: #666;">
+            Wind: {{ weather.wind_speed }} km/h<br>
+            Humidity: {{ weather.humidity }}%
+          </div>
           {% else %}
-          <a href="#" class="small-box-footer link-light link-underline-opacity-0">
-            Care team <i class="bi bi-arrow-right-circle ms-1"></i>
-          </a>
+          <div style="text-align: center; padding: 1rem;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;"><i class="bi bi-cloud-slash"></i></div>
+            <div style="font-size: 0.9rem; color: #999;">Weather unavailable</div>
+          </div>
           {% endif %}
         </div>
       </div>
     </div>
 
-    <!-- INFO BOX ROW -->
+    <!-- Feature 5: Performance KPI Cards -->
     <div class="row g-3 mb-4">
-      <div class="col-md-3 col-sm-6">
-        <div class="info-box">
-          <span class="info-box-icon text-bg-primary shadow-sm"><i class="bi bi-journal-text fs-4"></i></span>
-          <div class="info-box-content">
-            <span class="info-box-text">Notes This Week</span>
-            <span class="info-box-number">{{ notes_week }}</span>
+      <div class="col-md-3">
+        <div class="kpi-card success">
+          <div class="kpi-label">Handover Completion</div>
+          <div class="kpi-value">{{ kpi_metrics.handover_completion }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label">Avg Response Time</div>
+          <div class="kpi-value">{{ kpi_metrics.avg_response_time }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="kpi-card success">
+          <div class="kpi-label">Care Plan Adherence</div>
+          <div class="kpi-value">{{ kpi_metrics.adherence_rate }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="kpi-card danger">
+          <div class="kpi-label">Safety Incidents</div>
+          <div class="kpi-value">{{ kpi_metrics.incidents_this_month }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature 10: Interactive Charts -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-6">
+        <div class="chart-container">
+          <div class="chart-title">Care Notes Trend (Last 7 Days)</div>
+          <div class="chart-wrapper">
+            <canvas id="notesChart"></canvas>
           </div>
         </div>
       </div>
-      <div class="col-md-3 col-sm-6">
-        <div class="info-box">
-          <span class="info-box-icon text-bg-success shadow-sm"><i class="bi bi-heart-pulse fs-4"></i></span>
-          <div class="info-box-content">
-            <span class="info-box-text">Vitals Recorded Today</span>
-            <span class="info-box-number">{{ vitals_today }}</span>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3 col-sm-6">
-        <div class="info-box">
-          <span class="info-box-icon text-bg-warning shadow-sm"><i class="bi bi-hospital fs-4"></i></span>
-          <div class="info-box-content">
-            <span class="info-box-text">Nursing Care Patients</span>
-            <span class="info-box-number">{{ nursing_patients }}</span>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3 col-sm-6">
-        <div class="info-box">
-          <span class="info-box-icon text-bg-danger shadow-sm"><i class="bi bi-person-heart fs-4"></i></span>
-          <div class="info-box-content">
-            <span class="info-box-text">Dementia Care Patients</span>
-            <span class="info-box-number">{{ dementia_patients }}</span>
+      <div class="col-lg-6">
+        <div class="chart-container">
+          <div class="chart-title">Patient Care Level Distribution</div>
+          <div class="chart-wrapper">
+            <canvas id="careLevelChart"></canvas>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- NEWS2 HIGH RISK ALERTS -->
-    {% if high_risk_patients %}
-    <div class="row g-3 mb-4">
-      <div class="col-12">
-        <div class="card border-danger shadow-sm">
-          <div class="card-header bg-danger text-white d-flex align-items-center justify-content-between">
-            <h3 class="card-title fw-bold mb-0">
-              <i class="bi bi-exclamation-octagon-fill me-2"></i>NEWS2 High Risk Alerts
-              <span class="badge bg-white text-danger ms-2">{{ high_risk_patients|length }}</span>
-            </h3>
-            <small class="opacity-75">Immediate clinical review required</small>
-          </div>
-          <div class="card-body p-0">
-            {% for patient in high_risk_patients %}
-            <div class="d-flex align-items-center gap-3 px-3 py-3 border-bottom">
-              <div class="patient-avatar bg-danger bg-opacity-10 text-danger flex-shrink-0"
-                style="width:42px;height:42px;font-size:.9rem;">
-                {{ patient.initials }}
-              </div>
-              <div class="flex-grow-1">
-                <div class="d-flex align-items-center gap-2 flex-wrap">
-                  <a href="{% url 'patient_detail' patient.pk %}" class="fw-bold text-decoration-none text-dark">{{
-                    patient.get_full_name }}</a>
-                  <span class="badge text-bg-{{ patient.care_level_badge }}">{{ patient.get_care_level_display }}</span>
-                  <span class="text-muted small">Room {{ patient.room_number|default:"—" }}</span>
-                </div>
-                <div class="mt-1 d-flex gap-2 flex-wrap">
-                  <span class="badge bg-danger px-3 py-1">
-                    <i class="bi bi-activity me-1"></i>NEWS2 Score: {{ patient.latest_news2 }} — HIGH RISK
-                  </span>
-                  <span class="badge bg-dark opacity-75 small">
-                    <i class="bi bi-clock me-1"></i>{{ patient.latest_vitals_time|timesince }} ago
-                  </span>
-                </div>
-              </div>
-              <a href="{% url 'patient_detail' patient.pk %}" class="btn btn-danger btn-sm flex-shrink-0">
-                <i class="bi bi-eye me-1"></i>Review Now
-              </a>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- NEWS2 MEDIUM RISK -->
-    {% if medium_risk_patients %}
+    <!-- Feature 4: Role-Based Quick Actions -->
     <div class="row g-3 mb-4">
       <div class="col-12">
-        <div class="card border-warning shadow-sm">
-          <div class="card-header bg-warning text-dark d-flex align-items-center justify-content-between">
-            <h3 class="card-title fw-bold mb-0">
-              <i class="bi bi-exclamation-triangle-fill me-2"></i>NEWS2 Medium Risk
-              <span class="badge bg-dark text-warning ms-2">{{ medium_risk_patients|length }}</span>
-            </h3>
-            <small class="opacity-75">Clinical review within 30 minutes</small>
-          </div>
-          <div class="card-body p-0">
-            {% for patient in medium_risk_patients %}
-            <div class="d-flex align-items-center gap-3 px-3 py-2 border-bottom">
-              <div class="patient-avatar bg-warning bg-opacity-10 text-warning flex-shrink-0"
-                style="width:36px;height:36px;font-size:.8rem;">
-                {{ patient.initials }}
-              </div>
-              <div class="flex-grow-1">
-                <a href="{% url 'patient_detail' patient.pk %}"
-                  class="fw-semibold text-decoration-none text-dark small">{{ patient.get_full_name }}</a>
-                <span class="text-muted small ms-2">Room {{ patient.room_number|default:"—" }}</span>
-                <span class="badge bg-warning text-dark ms-2">NEWS2: {{ patient.latest_news2 }}</span>
-              </div>
-              <a href="{% url 'patient_detail' patient.pk %}" class="btn btn-warning btn-sm flex-shrink-0">
-                <i class="bi bi-eye me-1"></i>Review
+        <div style="background: white; border-radius: var(--border-radius); padding: 1.5rem; box-shadow: var(--box-shadow);">
+          <h5 style="margin-bottom: 1.5rem; font-weight: 600;">Quick Actions</h5>
+          <div class="row g-3">
+            {% if request.user.is_nurse %}
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'patient_list' %}" class="quick-action-btn">
+                <i class="bi bi-activity quick-action-icon"></i>
+                <span>Record Observations</span>
               </a>
             </div>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- ===== FALL RISK ALERTS ===== -->
-    {% if fall_risk_patients %}
-    <div class="row g-3 mb-4">
-      <div class="col-12">
-        <div class="card border-warning shadow-sm">
-          <div class="card-header text-dark d-flex align-items-center justify-content-between"
-            style="background:#fff3cd;">
-            <h3 class="card-title fw-bold mb-0">
-              <i class="bi bi-person-exclamation me-2 text-warning"></i>
-              Fall Risk Alerts
-              <span class="badge bg-warning text-dark ms-2">{{ fall_risk_patients|length }}</span>
-            </h3>
-            <small class="text-muted">Based on vitals, mood, mobility and care level</small>
-          </div>
-          <div class="card-body p-0">
-            {% for patient in fall_risk_patients %}
-            <div class="d-flex align-items-center gap-3 px-3 py-2 border-bottom">
-              <div style="width:38px;height:38px;border-radius:50%;overflow:hidden;flex-shrink:0;">
-                <img src="https://api.dicebear.com/7.x/pixel-art/svg?seed={{ patient.get_full_name }}&size=38"
-                  width="38" height="38" alt="{{ patient.get_full_name }}">
-              </div>
-              <div class="flex-grow-1">
-                <div class="d-flex align-items-center gap-2 flex-wrap">
-                  <a href="{% url 'patient_detail' patient.pk %}"
-                    class="fw-bold text-decoration-none text-dark small">{{ patient.get_full_name }}</a>
-                  <span class="text-muted small">Room {{ patient.room_number|default:"—" }}</span>
-                  <span class="badge bg-{{ patient.fall_risk.color }}">
-                    <i class="bi bi-person-exclamation me-1"></i>{{ patient.fall_risk.label }} — {{
-                    patient.fall_risk.score }}%
-                  </span>
-                </div>
-                <div class="d-flex flex-wrap gap-1 mt-1">
-                  {% for reason in patient.fall_risk.reasons %}
-                  <span class="badge bg-light text-dark border" style="font-size:.65rem;">{{ reason }}</span>
-                  {% endfor %}
-                </div>
-              </div>
-              <a href="{% url 'patient_detail' patient.pk %}" class="btn btn-warning btn-sm flex-shrink-0 no-print">
-                <i class="bi bi-eye me-1"></i>View
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'patient_list' %}" class="quick-action-btn">
+                <i class="bi bi-capsule-pill quick-action-icon"></i>
+                <span>Medication Round</span>
               </a>
             </div>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-    </div>
-    {% endif %}
-    <!-- ===== END FALL RISK ALERTS ===== -->
-
-    <!-- CHARTS + RECENT PATIENTS -->
-    <div class="row g-3 mb-4">
-      <div class="col-lg-4">
-        <div class="card h-100">
-          <div class="card-header bg-white">
-            <h3 class="card-title fw-bold"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Patients by Care Level
-            </h3>
-            <div class="card-tools">
-              <button type="button" class="btn btn-tool" data-lte-toggle="card-collapse"><i
-                  class="bi bi-dash-lg"></i></button>
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'shift_handover' %}" class="quick-action-btn">
+                <i class="bi bi-clipboard-check quick-action-icon"></i>
+                <span>Prepare Handover</span>
+              </a>
             </div>
-          </div>
-          <div class="card-body d-flex align-items-center justify-content-center">
-            <div class="chart-container w-100"><canvas id="careLevelChart"></canvas></div>
-          </div>
-        </div>
-      </div>
-      <div class="col-lg-4">
-        <div class="card h-100">
-          <div class="card-header bg-white">
-            <h3 class="card-title fw-bold"><i class="bi bi-bar-chart-fill text-success me-2"></i>Staff by Role</h3>
-            <div class="card-tools">
-              <button type="button" class="btn btn-tool" data-lte-toggle="card-collapse"><i
-                  class="bi bi-dash-lg"></i></button>
+            {% elif request.user.is_doctor %}
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'patient_list' %}" class="quick-action-btn">
+                <i class="bi bi-people quick-action-icon"></i>
+                <span>Review Residents</span>
+              </a>
             </div>
-          </div>
-          <div class="card-body d-flex align-items-center justify-content-center">
-            <div class="chart-container w-100"><canvas id="staffRoleChart"></canvas></div>
-          </div>
-        </div>
-      </div>
-      <div class="col-lg-4">
-        <div class="card h-100">
-          <div class="card-header bg-white d-flex justify-content-between align-items-center">
-            <h3 class="card-title fw-bold mb-0"><i class="bi bi-people text-warning me-2"></i>Recent Patients</h3>
-            <a href="{% url 'patient_add' %}" class="btn btn-sm btn-success"><i class="bi bi-plus-lg"></i></a>
-          </div>
-          <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-              {% for p in recent_patients %}
-              <li class="list-group-item px-3 py-2">
-                <div class="d-flex align-items-center gap-2">
-                  <div class="patient-avatar bg-{{ p.care_level_badge }} bg-opacity-10 text-{{ p.care_level_badge }}"
-                    style="width:36px;height:36px;font-size:.8rem;flex-shrink:0;">
-                    {{ p.initials }}
-                  </div>
-                  <div class="flex-grow-1 overflow-hidden">
-                    <a href="{% url 'patient_detail' p.pk %}"
-                      class="fw-semibold text-decoration-none d-block text-truncate small">{{ p.get_full_name }}</a>
-                    <span class="text-muted" style="font-size:.72rem;">Room {{ p.room_number|default:"—" }} &bull; Age
-                      {{ p.get_age }}</span>
-                  </div>
-                  <span class="badge text-bg-{{ p.care_level_badge }} text-uppercase" style="font-size:.6rem;">{{
-                    p.get_care_level_display }}</span>
-                </div>
-              </li>
-              {% empty %}
-              <li class="list-group-item text-muted small text-center py-4">
-                <i class="bi bi-people fs-4 d-block mb-1 opacity-25"></i>No patients yet
-              </li>
-              {% endfor %}
-            </ul>
-          </div>
-          <div class="card-footer bg-white text-center">
-            <a href="{% url 'patient_list' %}" class="btn btn-sm btn-outline-primary w-100">View All Patients</a>
-          </div>
-        </div>
-      </div>
-    </div>
-
-{% if weather.success %}
-<!-- ===== WEATHER WIDGET ===== -->
-<div class="row g-3 mb-4">
-  <div class="col-12">
-    <div class="weather-card" id="weatherCard">
-
-      <!-- Animated background layer -->
-      <div class="weather-bg" id="weatherBg"></div>
-
-      <!-- Floating particles (rain/snow) -->
-      <div class="weather-particles" id="weatherParticles"></div>
-
-      <div class="weather-content">
-
-        <!-- LEFT: Main weather display -->
-        <div class="weather-main">
-          <div class="weather-icon-wrap">
-            <div class="weather-icon-big" id="weatherIconBig">
-              {% with code=weather.weather_code|default:0 %}
-              {% if weather.temp <= 0 %}❄️
-              {% elif weather.description == 'Thunderstorm' %}⛈️
-              {% elif 'snow' in weather.description|lower %}🌨️
-              {% elif 'rain' in weather.description|lower or 'drizzle' in weather.description|lower %}🌧️
-              {% elif 'fog' in weather.description|lower %}🌫️
-              {% elif 'overcast' in weather.description|lower or 'cloudy' in weather.description|lower %}☁️
-              {% elif 'partly' in weather.description|lower %}⛅
-              {% elif 'clear' in weather.description|lower or 'sunny' in weather.description|lower %}☀️
-              {% else %}🌤️
-              {% endif %}
-              {% endwith %}
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'patient_list' %}" class="quick-action-btn">
+                <i class="bi bi-capsule quick-action-icon"></i>
+                <span>Medication Activity</span>
+              </a>
             </div>
-          </div>
-          <div class="weather-temp-block">
-            <div class="weather-temp">{{ weather.temp }}<span class="weather-unit">°C</span></div>
-            <div class="weather-feels">Feels like {{ weather.feels_like }}°C</div>
-            <div class="weather-desc">{{ weather.description }}</div>
-            <div class="weather-loc"><i class="bi bi-geo-alt-fill me-1"></i>{{ weather.location }}</div>
-          </div>
-        </div>
-
-        <!-- MIDDLE: Stats grid -->
-        <div class="weather-stats">
-          <div class="weather-stat">
-            <div class="weather-stat-icon">💧</div>
-            <div class="weather-stat-val">{{ weather.humidity }}%</div>
-            <div class="weather-stat-lbl">Humidity</div>
-          </div>
-          <div class="weather-stat">
-            <div class="weather-stat-icon">💨</div>
-            <div class="weather-stat-val">{{ weather.wind }}<span style="font-size:.7em;">km/h</span></div>
-            <div class="weather-stat-lbl">Wind</div>
-          </div>
-          <div class="weather-stat">
-            <div class="weather-stat-icon">🌡️</div>
-            <div class="weather-stat-val">{{ weather.pressure }}<span style="font-size:.7em;">hPa</span></div>
-            <div class="weather-stat-lbl">Pressure</div>
-          </div>
-          <div class="weather-stat">
-            <div class="weather-stat-icon">🌧️</div>
-            <div class="weather-stat-val">{{ weather.precip }}<span style="font-size:.7em;">mm</span></div>
-            <div class="weather-stat-lbl">Rainfall</div>
-          </div>
-        </div>
-
-        <!-- RIGHT: Health risk alerts -->
-        <div class="weather-risks">
-          <div class="weather-risks-title">
-            <i class="bi bi-heart-pulse-fill me-2"></i>Health Advisory
-          </div>
-          {% if weather.risks %}
-            {% for risk in weather.risks %}
-            <div class="weather-risk-item weather-risk-{{ risk.level }}">
-              <i class="bi {{ risk.icon }} me-2 flex-shrink-0"></i>
-              <span>{{ risk.text }}</span>
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'patient_list' %}" class="quick-action-btn">
+                <i class="bi bi-heart-pulse quick-action-icon"></i>
+                <span>Recent Vitals</span>
+              </a>
             </div>
-            {% endfor %}
-          {% else %}
-          <div class="weather-risk-item weather-risk-success">
-            <i class="bi bi-check-circle-fill me-2"></i>
-            <span>No weather-related health risks at this time. Conditions are favourable for residents.</span>
-          </div>
-          {% endif %}
-          <div class="weather-updated">
-            <i class="bi bi-clock me-1"></i>Updated {{ weather.updated_at|date:"H:i" }}
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-</div>
-
-<style>
-.weather-card {
-  position: relative;
-  border-radius: 20px;
-  overflow: hidden;
-  min-height: 180px;
-  box-shadow: 0 8px 32px rgba(0,0,0,.18);
-}
-.weather-bg {
-  position: absolute;
-  inset: 0;
-  background: {% if weather.temp <= 0 %}linear-gradient(135deg, #1a237e 0%, #283593 40%, #42a5f5 100%)
-  {% elif 'rain' in weather.description|lower or 'drizzle' in weather.description|lower %}linear-gradient(135deg, #1c2833 0%, #2c3e50 40%, #4a6fa5 100%)
-  {% elif 'snow' in weather.description|lower %}linear-gradient(135deg, #e8eaf6 0%, #bbdefb 50%, #e3f2fd 100%)
-  {% elif 'thunder' in weather.description|lower %}linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)
-  {% elif 'fog' in weather.description|lower %}linear-gradient(135deg, #546e7a 0%, #78909c 50%, #b0bec5 100%)
-  {% elif 'cloud' in weather.description|lower or 'overcast' in weather.description|lower %}linear-gradient(135deg, #455a64 0%, #607d8b 50%, #90a4ae 100%)
-  {% elif weather.temp >= 25 %}linear-gradient(135deg, #e65100 0%, #f57c00 40%, #ffb300 100%)
-  {% else %}linear-gradient(135deg, #0d47a1 0%, #1565c0 40%, #42a5f5 100%)
-  {% endif %};
-  z-index: 0;
-}
-.weather-particles {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  overflow: hidden;
-}
-.particle {
-  position: absolute;
-  border-radius: 50%;
-  opacity: 0.6;
-  animation: fall linear infinite;
-}
-@keyframes fall {
-  0%   { transform: translateY(-10px) translateX(0); opacity: 0.7; }
-  100% { transform: translateY(200px) translateX(20px); opacity: 0; }
-}
-@keyframes snowfall {
-  0%   { transform: translateY(-10px) translateX(0) rotate(0deg); opacity: 0.8; }
-  100% { transform: translateY(200px) translateX(-15px) rotate(180deg); opacity: 0; }
-}
-.weather-content {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: stretch;
-  gap: 0;
-  min-height: 180px;
-  color: white;
-}
-.weather-main {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.5rem 2rem;
-  flex-shrink: 0;
-  min-width: 260px;
-}
-.weather-icon-big {
-  font-size: 4rem;
-  line-height: 1;
-  filter: drop-shadow(0 4px 12px rgba(0,0,0,.3));
-  animation: floatIcon 3s ease-in-out infinite;
-}
-@keyframes floatIcon {
-  0%,100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-.weather-temp {
-  font-size: 3.5rem;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -2px;
-  text-shadow: 0 2px 8px rgba(0,0,0,.3);
-}
-.weather-unit { font-size: 1.8rem; font-weight: 400; opacity: .8; }
-.weather-feels { font-size: .85rem; opacity: .75; margin-top: .2rem; }
-.weather-desc { font-size: 1.1rem; font-weight: 600; margin-top: .3rem; }
-.weather-loc { font-size: .78rem; opacity: .7; margin-top: .2rem; }
-
-.weather-stats {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: .5rem;
-  padding: 1.5rem 1.5rem;
-  border-left: 1px solid rgba(255,255,255,.15);
-  border-right: 1px solid rgba(255,255,255,.15);
-  flex-shrink: 0;
-  min-width: 160px;
-}
-.weather-stat { display: flex; align-items: center; gap: .6rem; }
-.weather-stat-icon { font-size: 1.2rem; }
-.weather-stat-val { font-size: 1rem; font-weight: 700; min-width: 60px; }
-.weather-stat-lbl { font-size: .72rem; opacity: .65; }
-
-.weather-risks {
-  flex: 1;
-  padding: 1.25rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: .5rem;
-  justify-content: center;
-}
-.weather-risks-title {
-  font-size: .7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .1em;
-  opacity: .7;
-  margin-bottom: .25rem;
-}
-.weather-risk-item {
-  display: flex;
-  align-items: flex-start;
-  font-size: .78rem;
-  line-height: 1.4;
-  padding: .4rem .7rem;
-  border-radius: 8px;
-  backdrop-filter: blur(4px);
-}
-.weather-risk-danger  { background: rgba(220,53,69,.25); border-left: 3px solid #dc3545; }
-.weather-risk-warning { background: rgba(255,193,7,.2);  border-left: 3px solid #ffc107; }
-.weather-risk-success { background: rgba(25,135,84,.2);  border-left: 3px solid #198754; }
-.weather-updated {
-  font-size: .68rem;
-  opacity: .5;
-  margin-top: .25rem;
-}
-
-{% if 'snow' in weather.description|lower %}
-.weather-card { color: #1a237e !important; }
-.weather-content { color: #1a237e !important; }
-.weather-risks-title, .weather-feels, .weather-loc, .weather-stat-lbl, .weather-updated { color: #37474f !important; opacity: 1 !important; }
-{% endif %}
-
-@media (max-width: 768px) {
-  .weather-content { flex-direction: column; }
-  .weather-stats { flex-direction: row; flex-wrap: wrap; border: none; border-top: 1px solid rgba(255,255,255,.15); border-bottom: 1px solid rgba(255,255,255,.15); }
-  .weather-main { min-width: unset; padding: 1rem 1.25rem; }
-  .weather-risks { padding: 1rem 1.25rem; }
-}
-</style>
-
-<script>
-(function() {
-  const desc = '{{ weather.description|lower }}';
-  const temp = {{ weather.temp }};
-  const container = document.getElementById('weatherParticles');
-  if (!container) return;
-
-  const isRain = desc.includes('rain') || desc.includes('drizzle') || desc.includes('shower');
-  const isSnow = desc.includes('snow') || temp <= 0;
-  const isThunder = desc.includes('thunder');
-
-  if (isRain || isThunder) {
-    for (let i = 0; i < 40; i++) {
-      const drop = document.createElement('div');
-      drop.className = 'particle';
-      drop.style.cssText = `
-        left: ${Math.random()*100}%;
-        width: 2px;
-        height: ${8 + Math.random()*12}px;
-        background: rgba(174,214,241,.6);
-        border-radius: 2px;
-        animation-duration: ${0.6 + Math.random()*0.8}s;
-        animation-delay: ${Math.random()*2}s;
-        animation-name: fall;
-      `;
-      container.appendChild(drop);
-    }
-  }
-
-  if (isSnow) {
-    for (let i = 0; i < 30; i++) {
-      const flake = document.createElement('div');
-      flake.className = 'particle';
-      const size = 4 + Math.random() * 6;
-      flake.style.cssText = `
-        left: ${Math.random()*100}%;
-        width: ${size}px;
-        height: ${size}px;
-        background: white;
-        opacity: 0.8;
-        animation-duration: ${2 + Math.random()*3}s;
-        animation-delay: ${Math.random()*4}s;
-        animation-name: snowfall;
-      `;
-      container.appendChild(flake);
-    }
-  }
-
-  if (isThunder) {
-    setInterval(() => {
-      if (Math.random() > 0.85) {
-        const card = document.getElementById('weatherCard');
-        card.style.filter = 'brightness(1.8)';
-        setTimeout(() => card.style.filter = '', 80);
-      }
-    }, 2000);
-  }
-})();
-</script>
-<!-- ===== END WEATHER WIDGET ===== -->
-{% endif %}
-
-    <!-- ACTIVITY FEED + ALLERGY ALERTS -->
-    <div class="row g-3">
-      <div class="col-lg-8">
-        <div class="card">
-          <div class="card-header bg-white d-flex justify-content-between align-items-center">
-            <h3 class="card-title fw-bold mb-0"><i class="bi bi-activity text-danger me-2"></i>Live Activity Feed <small
-                class="text-muted fw-normal">(last 24 hrs)</small></h3>
-            <div class="card-tools">
-              <button type="button" class="btn btn-tool" data-lte-toggle="card-collapse"><i
-                  class="bi bi-dash-lg"></i></button>
+            {% elif request.user.is_admin %}
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'staff_list' %}" class="quick-action-btn">
+                <i class="bi bi-person-badge quick-action-icon"></i>
+                <span>Manage Staff</span>
+              </a>
             </div>
-          </div>
-          <div class="card-body p-0">
-            {% if activity %}
-            <div class="activity-feed px-3 py-1">
-              {% for item in activity %}
-              <div class="feed-item d-flex align-items-start gap-3 py-2">
-                <div
-                  class="timeline-item-icon bg-{{ item.color }} bg-opacity-10 text-{{ item.color }} flex-shrink-0 mt-1">
-                  <i class="bi {{ item.icon }}"></i>
-                </div>
-                <div class="flex-grow-1">
-                  <p class="mb-0 small fw-semibold">{{ item.desc }}</p>
-                  <small class="text-muted">
-                    <i class="bi bi-person-circle me-1"></i>{% if item.user %}{{
-                    item.user.get_full_name|default:item.user.username }}{% else %}System{% endif %}
-                    &bull;
-                    <i class="bi bi-clock me-1"></i>{{ item.time|timesince }} ago
-                  </small>
-                </div>
-                <a href="{% url 'patient_detail' item.obj.patient.pk %}"
-                  class="btn btn-outline-secondary btn-sm flex-shrink-0"
-                  style="font-size:.7rem;padding:.2rem .5rem;">View</a>
-              </div>
-              {% endfor %}
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'patient_add' %}" class="quick-action-btn">
+                <i class="bi bi-person-plus quick-action-icon"></i>
+                <span>Register Resident</span>
+              </a>
+            </div>
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'shift_handover' %}" class="quick-action-btn">
+                <i class="bi bi-clipboard2-pulse quick-action-icon"></i>
+                <span>Open Handover</span>
+              </a>
             </div>
             {% else %}
-            <div class="text-center py-5 text-muted">
-              <i class="bi bi-activity fs-2 d-block mb-2 opacity-25"></i>
-              <p class="mb-0">No activity recorded in the last 24 hours.</p>
-              <a href="{% url 'patient_list' %}" class="btn btn-sm btn-primary mt-2">Go to Patients</a>
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'patient_list' %}" class="quick-action-btn">
+                <i class="bi bi-journal-plus quick-action-icon"></i>
+                <span>Log Care Note</span>
+              </a>
+            </div>
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'patient_list' %}" class="quick-action-btn">
+                <i class="bi bi-people quick-action-icon"></i>
+                <span>Resident List</span>
+              </a>
+            </div>
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'patient_list' %}" class="quick-action-btn">
+                <i class="bi bi-exclamation-triangle quick-action-icon"></i>
+                <span>Escalate Concern</span>
+              </a>
             </div>
             {% endif %}
           </div>
-          <div class="card-footer bg-white clearfix">
-            <small class="text-muted">Showing last 24 hours of activity</small>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-lg-4">
-        <div class="card">
-          <div class="card-header bg-white">
-            <h3 class="card-title fw-bold mb-0"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Allergy
-              Alerts</h3>
-            <div class="card-tools">
-              <button type="button" class="btn btn-tool" data-lte-toggle="card-collapse"><i
-                  class="bi bi-dash-lg"></i></button>
-            </div>
-          </div>
-          <div class="card-body p-0">
-            {% for p in flagged_patients %}
-            <div class="px-3 py-2 border-bottom">
-              <div class="d-flex align-items-center gap-2 mb-1">
-                <div class="patient-avatar bg-danger bg-opacity-10 text-danger"
-                  style="width:30px;height:30px;font-size:.7rem;flex-shrink:0;">
-                  {{ p.initials }}
-                </div>
-                <a href="{% url 'patient_detail' p.pk %}" class="fw-semibold text-decoration-none small">{{
-                  p.get_full_name }}</a>
-              </div>
-              <span class="badge allergy-badge small"><i class="bi bi-exclamation-circle me-1"></i>{{
-                p.allergies|truncatechars:40 }}</span>
-            </div>
-            {% empty %}
-            <div class="text-center py-4 text-muted small">
-              <i class="bi bi-shield-check fs-3 text-success d-block mb-1"></i>No allergy alerts
-            </div>
-            {% endfor %}
-          </div>
-          {% if request.user.role in 'admin,nurse' %}
-          <div class="card-footer bg-white">
-            <a href="{% url 'patient_add' %}" class="btn btn-success btn-sm w-100">
-              <i class="bi bi-plus-circle me-1"></i>Register New Patient
-            </a>
-          </div>
-          {% endif %}
         </div>
       </div>
     </div>
 
+    <!-- Feature 7: High Risk Alerts -->
+    {% if high_risk_patients %}
+    <div class="row g-3 mb-4">
+      <div class="col-12">
+        <div class="high-risk-container">
+          <div class="high-risk-header">
+            <i class="bi bi-exclamation-octagon-fill"></i> NEWS2 High Risk Alerts ({{ high_risk_patients|length }})
+          </div>
+          <div class="high-risk-list">
+            {% for patient in high_risk_patients %}
+            <div class="risk-item">
+              <div style="flex: 1;">
+                <div style="font-weight: 600;">{{ patient.get_full_name }}</div>
+                <div style="font-size: 0.85rem; color: #666;">
+                  Room {{ patient.room_number }} - NEWS2 Score: {{ patient.latest_news2 }} (HIGH RISK)
+                </div>
+              </div>
+              <div>
+                <a href="{% url 'patient_detail' patient.pk %}" class="btn btn-sm btn-danger">Review</a>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Feature 6: Patient Summary Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-8">
+        <h5 style="margin-bottom: 1.5rem; font-weight: 600;">Active Patients Overview</h5>
+        {% for patient in recent_patients %}
+        <div class="patient-card">
+          <div class="patient-header">
+            <div class="patient-avatar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+              {{ patient.initials }}
+            </div>
+            <div class="patient-info">
+              <div class="patient-name">{{ patient.get_full_name }}</div>
+              <div class="patient-meta">
+                <span class="badge bg-light text-dark" style="margin-right: 0.5rem;">{{ patient.get_care_level_display }}</span>
+                <span>Room {{ patient.room_number }}</span>
+              </div>
+            </div>
+            <div class="patient-action">
+              <a href="{% url 'patient_detail' patient.pk %}" class="btn btn-sm btn-primary">View</a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Activity Feed -->
+      <div class="col-lg-4">
+        <h5 style="margin-bottom: 1.5rem; font-weight: 600;">Recent Activity</h5>
+        <div class="activity-container">
+          <ul class="activity-list">
+            {% for item in activity|slice:":8" %}
+            <li class="activity-item">
+              <div class="activity-icon" style="color: {% if item.color == 'success' %}#198754{% elif item.color == 'danger' %}#dc3545{% else %}#0d6efd{% endif %};">
+                <i class="bi {{ item.icon }}"></i>
+              </div>
+              <div class="activity-content">
+                <div class="activity-desc">{{ item.desc }}</div>
+                <div class="activity-time">{{ item.time|timesince }} ago</div>
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Medium Risk Section -->
+    {% if medium_risk_patients %}
+    <div class="row g-3 mb-4">
+      <div class="col-12">
+        <div class="chart-container" style="border-left: 4px solid var(--warning-color);">
+          <h5 style="margin-bottom: 1.5rem; font-weight: 600;">NEWS2 Medium Risk Review</h5>
+          <div class="row">
+            {% for patient in medium_risk_patients|slice:":4" %}
+            <div class="col-md-6">
+              <div style="padding: 1rem; background: rgba(255, 193, 7, 0.05); border-radius: var(--border-radius); margin-bottom: 1rem;">
+                <div style="font-weight: 600;">{{ patient.get_full_name }}</div>
+                <div style="font-size: 0.9rem; color: #666; margin-top: 0.3rem;">
+                  NEWS2: {{ patient.latest_news2 }} - Review within 30 minutes
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
   </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+
 <script>
-  const clCtx = document.getElementById('careLevelChart');
-  new Chart(clCtx, {
-    type: 'doughnut',
-    data: {
-      labels: {{ care_levels_labels| safe }},
-    datasets: [{ data: {{ care_levels_values| safe }}, backgroundColor: ['#198754', '#0d6efd', '#ffc107', '#0dcaf0', '#dc3545'], borderWidth: 0 }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10 } } }, cutout: '60%' }
+  // Data from server
+  const chartData = {{ chart_data|safe }};
+  const userDarkMode = {{ dark_mode|lower }};
+
+  // Initialize dark mode if user preference exists
+  function initDarkMode() {
+    if (userDarkMode || localStorage.getItem('darkMode') === 'true') {
+      document.body.classList.add('dark-mode');
+      document.getElementById('themeIcon').classList.replace('bi-moon', 'bi-sun-fill');
+    }
+  }
+
+  // Dark mode toggle
+  document.getElementById('themeToggle').addEventListener('click', function() {
+    const isDarkMode = document.body.classList.toggle('dark-mode');
+    const icon = document.getElementById('themeIcon');
+
+    if (isDarkMode) {
+      icon.classList.replace('bi-moon', 'bi-sun-fill');
+      localStorage.setItem('darkMode', 'true');
+    } else {
+      icon.classList.replace('bi-sun-fill', 'bi-moon');
+      localStorage.setItem('darkMode', 'false');
+    }
   });
 
-  const srCtx = document.getElementById('staffRoleChart');
-  new Chart(srCtx, {
-    type: 'bar',
-    data: {
-      labels: {{ staff_role_labels| safe }},
-    datasets: [{ label: 'Staff Count', data: {{ staff_role_values| safe }}, backgroundColor: ['#dc3545', '#0d6efd', '#198754', '#ffc107'], borderRadius: 8, borderWidth: 0 }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(0,0,0,.05)' } }, x: { grid: { display: false } } } }
+  // Animated number counter
+  function animateCounter(element) {
+    const target = parseInt(element.getAttribute('data-value'));
+    const duration = 800;
+    const steps = 60;
+    const stepValue = target / steps;
+    let current = 0;
+
+    const interval = setInterval(() => {
+      current += stepValue;
+      if (current >= target) {
+        element.textContent = target;
+        clearInterval(interval);
+      } else {
+        element.textContent = Math.floor(current);
+      }
+    }, duration / steps);
+  }
+
+  // Start animations on page load
+  document.querySelectorAll('.stat-value').forEach(element => {
+    animateCounter(element);
   });
+
+  // Chart configurations
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: {
+          usePointStyle: true,
+          padding: 20,
+          font: { size: 12, weight: 500 }
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { stepSize: 1 }
+      }
+    }
+  };
+
+  // Care Notes Chart
+  const notesCtx = document.getElementById('notesChart');
+  if (notesCtx) {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    new Chart(notesCtx, {
+      type: 'line',
+      data: {
+        labels: days,
+        datasets: [{
+          label: 'Care Notes',
+          data: chartData.daily_notes,
+          borderColor: '#198754',
+          backgroundColor: 'rgba(25, 135, 84, 0.05)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        }]
+      },
+      options: chartOptions
+    });
+  }
+
+  // Care Level Distribution Chart
+  const careLevelCtx = document.getElementById('careLevelChart');
+  if (careLevelCtx) {
+    const labels = Object.keys(chartData.care_levels);
+    const data = Object.values(chartData.care_levels);
+    const colors = ['#0d6efd', '#198754', '#ffc107', '#dc3545'];
+
+    new Chart(careLevelCtx, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          backgroundColor: colors.slice(0, labels.length),
+          borderColor: ['white'],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        ...chartOptions,
+        plugins: {
+          legend: { position: 'bottom' }
+        }
+      }
+    });
+  }
+
+  // Notification bell toggle
+  document.getElementById('notificationBell').addEventListener('click', function(e) {
+    e.stopPropagation();
+    const panel = document.getElementById('notificationPanel');
+    panel.classList.toggle('active');
+  });
+
+  // Close notification panel when clicking outside
+  document.addEventListener('click', function() {
+    const panel = document.getElementById('notificationPanel');
+    if (panel.classList.contains('active')) {
+      panel.classList.remove('active');
+    }
+  });
+
+  // Initialize
+  initDarkMode();
 </script>
 {% endblock %}
