@@ -43,10 +43,12 @@ def calculate_kpi_metrics(days=30):
     handover_rate = 95
 
     safety_incidents = 0
-    high_risk_alerts = VitalSigns.objects.filter(
-        news2_level='high',
-        recorded_at__gte=start_date
-    ).count()
+
+    # Calculate high risk alerts by checking news2_level property
+    high_risk_alerts = 0
+    for vital in VitalSigns.objects.filter(recorded_at__gte=start_date):
+        if vital.news2_level == 'high':
+            high_risk_alerts += 1
 
     return {
         'handover_completion': f"{handover_rate}%",
