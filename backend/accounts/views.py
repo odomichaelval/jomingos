@@ -6,6 +6,7 @@ from django.db.models import Q
 from .forms import LoginForm, StaffCreationForm, StaffEditForm, RegistrationForm
 from .models import User
 from .role_access import dashboard_url_for_user
+from .audit import log_audit
 
 
 def login_view(request):
@@ -15,9 +16,13 @@ def login_view(request):
     if request.method == 'POST' and form.is_valid():
         user = form.get_user()
         login(request, user)
+        log_audit(request, 'login', f'User {user.username} logged in', status='success')
         messages.success(request, f'Welcome back, {user.get_full_name() or user.username}!')
         next_url = request.GET.get('next', '')
         return redirect(next_url or dashboard_url_for_user(user))
+    elif request.method == 'POST':
+        username = request.POST.get('username', '')
+        log_audit(request, 'failed_login', f'Failed login attempt for username: {username}', status='failed')
     return render(request, 'accounts/login.html', {'form': form})
 
 
@@ -27,13 +32,16 @@ def register_view(request):
     form = RegistrationForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         user = form.save()
+        log_audit(request, 'register', f'New user {user.username} registered', status='success')
         messages.success(request, 'Account created successfully! You can now login.')
         return redirect('login')
     return render(request, 'accounts/register.html', {'form': form})
 
 
 def logout_view(request):
+    username = request.user.username if request.user.is_authenticated else 'Unknown'
     logout(request)
+    log_audit(request, 'logout', f'User {username} logged out', status='success')
     messages.info(request, 'You have been signed out.')
     return redirect('login')
 

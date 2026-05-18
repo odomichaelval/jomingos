@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, PasswordResetToken
+from .models import User, PasswordResetToken, AuditLog
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
@@ -16,3 +16,19 @@ class PasswordResetTokenAdmin(admin.ModelAdmin):
     list_filter = ['is_used', 'created_at', 'expires_at']
     readonly_fields = ['token', 'token_plain', 'created_at']
     search_fields = ['user__username', 'user__email']
+
+
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    list_display = ['timestamp', 'user', 'action', 'description', 'status', 'ip_address']
+    list_filter = ['action', 'status', 'timestamp']
+    search_fields = ['user__username', 'description', 'ip_address']
+    readonly_fields = ['timestamp', 'user', 'action', 'description', 'model_name', 'object_id', 'ip_address', 'user_agent', 'status']
+    date_hierarchy = 'timestamp'
+    ordering = ['-timestamp']
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
