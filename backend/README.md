@@ -95,71 +95,6 @@ Different custom dashboards for:
 | User Authentication | ✅ Complete | JWT-based, role-based access control |
 | Admin Panel | ✅ Complete | Django admin with customization |
 
-**All features are production-ready and deployed.**
-
----
-
-## Quick Deployment (Render - 15 Minutes)
-
-⚡ **Fastest way to get live:** See **[DEPLOYMENT_QUICK_START.md](DEPLOYMENT_QUICK_START.md)** for step-by-step guide
-
-**Key steps:**
-1. Push code to GitHub ✓
-2. Create Render account
-3. Set up PostgreSQL database
-4. Create Web Service
-5. Add environment variables
-6. Done - you're live!
-
-See the full deployment guide for detailed instructions, environment variable setup, and troubleshooting.
-
-## Tech Stack
-
-- **Django 4.2** - Web framework
-- **Django REST Framework** - REST API
-- **PostgreSQL/SQLite** - Database
-- **Chart.js** - Interactive charts
-- **JWT** - Secure authentication
-- **Gunicorn** - Production WSGI server
-- **Render/Heroku** - Cloud hosting (free tier available)
-
-## Deployment Options
-
-### Option 1: Render (Recommended - Free & Easy)
-- **Time**: 15 minutes
-- **Cost**: Free tier available
-- **Guide**: [DEPLOYMENT_QUICK_START.md](DEPLOYMENT_QUICK_START.md)
-- **Steps**: GitHub → Render → PostgreSQL → Done
-- **Best for**: Students, quick deployment
-
-### Option 2: Heroku
-- **Time**: 20 minutes
-- **Cost**: ~$7/month (free tier discontinued)
-- **Guide**: [DEPLOYMENT.md](DEPLOYMENT.md)
-- **Best for**: Reliable, well-documented
-
-### Option 3: AWS/DigitalOcean/Linode
-- **Time**: 30-45 minutes
-- **Cost**: Pay as you go
-- **Guide**: [DEPLOYMENT.md](DEPLOYMENT.md)
-- **Best for**: Custom needs, scaling
-
-### Option 4: PythonAnywhere
-- **Time**: 20 minutes
-- **Cost**: Free tier available
-- **Guide**: [DEPLOYMENT.md](DEPLOYMENT.md)
-- **Best for**: Python-specific hosting
-
-### Option 5: Local Development
-- **Time**: 5 minutes
-- **Cost**: Free
-- **Guide**: See "Getting Started Locally" section below
-- **Best for**: Testing, development
-
-**Recommended**: Use Render for easiest deployment.
-
----
-
 ## Project Structure
 
 ```
@@ -601,7 +536,7 @@ Visit:
 - Admin: `https://your-app.onrender.com/admin/`
 - API Docs: `https://your-app.onrender.com/api/swagger/`
 
-Done! Your backend is live! 🎉
+Done! Your backend is live! 
 
 ## Testing Locally
 
@@ -636,7 +571,6 @@ python manage.py shell
 ```
 
 ### ALLOWED_HOSTS Error
-```
 → Add your domain to DJANGO_ALLOWED_HOSTS in .env
 ```
 
@@ -794,10 +728,6 @@ For issues:
 2. Look at Django error messages
 3. Check browser console for frontend errors
 4. Check Render logs for deployment issues
-
-## License
-
-Built for Sheffield Hallam University coursework.
 
 ---
 

@@ -1,5 +1,7 @@
 from pathlib import Path
 import os
+#added for render.com deployment
+import dj_database_url
 
 try:
     from dotenv import load_dotenv
@@ -14,6 +16,8 @@ if load_dotenv:
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-Jomingos-dev-key-change-in-production")
 
 DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 ALLOWED_HOSTS = [h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver").split(",") if h.strip()]
 
@@ -69,27 +73,25 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'Jomingos.wsgi.application'
 
-_db_engine = os.getenv("DJANGO_DB_ENGINE", "django.db.backends.sqlite3").strip()
-_db_options = {}
+DATABASES = {}
 
-if _db_engine in ["mssql", "mssql-django"]:
-    _db_engine = "mssql"
-    _db_options = {
-        "driver": os.getenv("DJANGO_DB_DRIVER", "ODBC Driver 18 for SQL Server"),
-        "TrustServerCertificate": os.getenv("DJANGO_DB_TRUST_CERT", "yes"),
+# If DATABASE_URL exists (Render)
+if os.getenv("DATABASE_URL"):
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=os.getenv("DATABASE_URL"),
+            conn_max_age=600,
+            ssl_require=True
+        )
     }
-
-DATABASES = {
-    "default": {
-        "ENGINE": _db_engine,
-        "NAME": os.getenv("DJANGO_DB_NAME", str(BASE_DIR / "db.sqlite3")),
-        "USER": os.getenv("DJANGO_DB_USER", ""),
-        "PASSWORD": os.getenv("DJANGO_DB_PASSWORD", ""),
-        "HOST": os.getenv("DJANGO_DB_HOST", ""),
-        "PORT": os.getenv("DJANGO_DB_PORT", ""),
-        "OPTIONS": _db_options,
+else:
+    # LOCAL fallback (SQLite)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
-}
 
 AUTH_USER_MODEL = 'accounts.User'
 
