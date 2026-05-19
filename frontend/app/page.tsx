@@ -66,8 +66,8 @@ export default function HomePage() {
 
                 {/* CTA Buttons */}
                 <div className="hero-actions" data-aos="fade-right" data-aos-delay="600">
-                  <Link href="http://127.0.0.1:8000/" className="btn btn-primary">Login</Link>
-                  <Link href="/contact" className="btn btn-outline">Contact Us</Link>
+                  <a href="https://jomingos.onrender.com/accounts/register" className="btn btn-primary">Get Started</a>
+                  <a href="https://jomingos.onrender.com/accounts/login" className="btn btn-outline">Login</a>
                 </div>
 
                 {/* Emergency Contact */}
