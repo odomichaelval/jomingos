@@ -17,6 +17,8 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-Jomingos-dev-key-ch
 
 DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
 
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 ALLOWED_HOSTS = [h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver").split(",") if h.strip()]
 
 INSTALLED_APPS = [
@@ -70,30 +72,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'Jomingos.wsgi.application'
-
-_db_engine = os.getenv("DJANGO_DB_ENGINE", "django.db.backends.sqlite3").strip()
-_db_options = {}
-
-if _db_engine in ["mssql", "mssql-django"]:
-    _db_engine = "mssql"
-    _db_options = {
-        "driver": os.getenv("DJANGO_DB_DRIVER", "ODBC Driver 18 for SQL Server"),
-        "TrustServerCertificate": os.getenv("DJANGO_DB_TRUST_CERT", "yes"),
-    }
-
-#SQlite was used for local development with SQLite, but switched to dj_database_url for better Heroku/Render compatibility. You can uncomment and adjust this if you want to use a different database locally.
-# DATABASES = {
-#     "default": {
-#         "ENGINE": _db_engine,
-#         "NAME": os.getenv("DJANGO_DB_NAME", str(BASE_DIR / "db.sqlite3")),
-#         "USER": os.getenv("DJANGO_DB_USER", ""),
-#         "PASSWORD": os.getenv("DJANGO_DB_PASSWORD", ""),
-#         "HOST": os.getenv("DJANGO_DB_HOST", ""),
-#         "PORT": os.getenv("DJANGO_DB_PORT", ""),
-#         "OPTIONS": _db_options,
-#     }
-# }
-
 
 DATABASES = {
     "default": dj_database_url.config(
