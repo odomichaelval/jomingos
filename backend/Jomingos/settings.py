@@ -1,5 +1,7 @@
 from pathlib import Path
 import os
+#added for render.com deployment
+import dj_database_url
 
 try:
     from dotenv import load_dotenv
@@ -79,16 +81,26 @@ if _db_engine in ["mssql", "mssql-django"]:
         "TrustServerCertificate": os.getenv("DJANGO_DB_TRUST_CERT", "yes"),
     }
 
+#SQlite was used for local development with SQLite, but switched to dj_database_url for better Heroku/Render compatibility. You can uncomment and adjust this if you want to use a different database locally.
+# DATABASES = {
+#     "default": {
+#         "ENGINE": _db_engine,
+#         "NAME": os.getenv("DJANGO_DB_NAME", str(BASE_DIR / "db.sqlite3")),
+#         "USER": os.getenv("DJANGO_DB_USER", ""),
+#         "PASSWORD": os.getenv("DJANGO_DB_PASSWORD", ""),
+#         "HOST": os.getenv("DJANGO_DB_HOST", ""),
+#         "PORT": os.getenv("DJANGO_DB_PORT", ""),
+#         "OPTIONS": _db_options,
+#     }
+# }
+
+
 DATABASES = {
-    "default": {
-        "ENGINE": _db_engine,
-        "NAME": os.getenv("DJANGO_DB_NAME", str(BASE_DIR / "db.sqlite3")),
-        "USER": os.getenv("DJANGO_DB_USER", ""),
-        "PASSWORD": os.getenv("DJANGO_DB_PASSWORD", ""),
-        "HOST": os.getenv("DJANGO_DB_HOST", ""),
-        "PORT": os.getenv("DJANGO_DB_PORT", ""),
-        "OPTIONS": _db_options,
-    }
+    "default": dj_database_url.config(
+        default=os.getenv("DATABASE_URL"),
+        conn_max_age=600,
+        ssl_require=True
+    )
 }
 
 AUTH_USER_MODEL = 'accounts.User'
