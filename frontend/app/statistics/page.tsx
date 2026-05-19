@@ -11,7 +11,7 @@ type Stats = {
 
 // ── API base URL (same as your lib/api.ts) ───────────────────────────────────
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000/api";
+  process.env.NEXT_PUBLIC_API_BASE || "https://jomingos.onrender.com/api";
 
 export default function StatisticsPage() {
   const [stats, setStats] = useState<Stats | null>(null);
