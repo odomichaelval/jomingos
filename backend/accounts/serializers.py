@@ -22,16 +22,19 @@ class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
     phone = serializers.CharField(source="phone_number", allow_blank=True, required=False)
-    
+    role = serializers.ChoiceField(choices=User.ROLE_CHOICES, required=True)
+
     class Meta:
         model = User
         fields = ['username', 'email', 'first_name', 'last_name', 'phone', 'password', 'password2', 'role']
-    
+
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError({"password": "Password fields didn't match."})
+        if attrs.get('role') not in dict(User.ROLE_CHOICES):
+            raise serializers.ValidationError({"role": "Invalid role selected."})
         return attrs
-    
+
     def create(self, validated_data):
         validated_data.pop('password2')
         user = User.objects.create_user(**validated_data)

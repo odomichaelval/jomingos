@@ -1,167 +1,877 @@
-{% extends 'family/base_family.html' %}
-{% block title %}{{ patient.get_full_name }} — Overview{% endblock %}
-{% block nav_overview %}active{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resident Portal - {{ patient.get_full_name }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-{% block extra_css %}
-<style>
-  .patient-hero {
-    background: linear-gradient(135deg, #1b5ea6 0%, #0e7c7b 100%);
-    color: white;
-    border-radius: 16px;
-    padding: 1.75rem 2rem;
-    margin-bottom: 1.5rem;
-  }
-  .wellbeing-card { border-radius: 12px; transition: transform .2s; }
-  .wellbeing-card:hover { transform: translateY(-3px); }
-  .note-card { border-left: 4px solid #0e7c7b; border-radius: 8px; margin-bottom: .75rem; }
-  .stat-pill { background: rgba(255,255,255,.15); border-radius: 20px; padding: .3rem .9rem; font-size: .85rem; display: inline-block; }
-</style>
-{% endblock %}
+    body {
+      background: linear-gradient(135deg, #f8f9fa 0%, #f0f1f3 100%);
+      min-height: 100vh;
+      font-family: 'DM Sans', sans-serif;
+      color: #2c3e50;
+      line-height: 1.6;
+    }
 
-{% block content %}
+    /* Navigation */
+    .navbar-family {
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      box-shadow: 0 2px 15px rgba(30, 60, 114, 0.15);
+      padding: 1rem 2rem;
+    }
 
-  <!-- Patient Hero -->
-  <div class="patient-hero">
-    <div class="d-flex align-items-center gap-4 flex-wrap">
-      <div style="width:88px;height:88px;border-radius:50%;overflow:hidden;border:3px solid rgba(255,255,255,.4);flex-shrink:0;">
-        <img src="https://api.dicebear.com/7.x/pixel-art/svg?seed={{ patient.get_full_name }}&size=88" width="88" height="88" alt="{{ patient.get_full_name }}">
+    .navbar-brand {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: white;
+      letter-spacing: -0.5px;
+    }
+
+    .navbar-brand span {
+      color: #a8d5ff;
+    }
+
+    .user-info {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.9rem;
+    }
+
+    /* Header Section */
+    .header-section {
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      color: white;
+      padding: 3rem 2rem;
+      margin-bottom: 3rem;
+      box-shadow: 0 8px 25px rgba(30, 60, 114, 0.2);
+    }
+
+    .header-content {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      align-items: center;
+    }
+
+    .header-title {
+      font-family: 'Poppins', sans-serif;
+      font-size: 3rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+      letter-spacing: -1px;
+    }
+
+    .header-subtitle {
+      font-size: 1.1rem;
+      opacity: 0.95;
+      margin-bottom: 1.5rem;
+      font-weight: 300;
+    }
+
+    .header-meta {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .meta-icon {
+      width: 45px;
+      height: 45px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+    }
+
+    .meta-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .meta-label {
+      font-size: 0.8rem;
+      opacity: 0.8;
+      font-weight: 500;
+    }
+
+    .meta-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .profile-image-header {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .profile-img-wrapper {
+      width: 200px;
+      height: 200px;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 5px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .profile-img-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Main Container */
+    .family-container {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 0 1rem 3rem;
+    }
+
+    /* Cards */
+    .info-card {
+      background: white;
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      border-top: 4px solid #2a5298;
+      transition: all 0.3s ease;
+    }
+
+    .info-card:hover {
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .card-title {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      color: #1e3c72;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .card-title i {
+      font-size: 1.5rem;
+      color: #2a5298;
+    }
+
+    /* Health Status Cards Grid */
+    .health-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .health-card {
+      background: white;
+      border-radius: 16px;
+      padding: 1.8rem;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      border-top: 4px solid #2a5298;
+      transition: all 0.3s ease;
+    }
+
+    .health-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .health-icon {
+      width: 70px;
+      height: 70px;
+      background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.2rem;
+      font-size: 2rem;
+      color: white;
+    }
+
+    .health-label {
+      font-size: 0.95rem;
+      color: #7f8c8d;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+
+    .health-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #1e3c72;
+      margin-bottom: 0.5rem;
+    }
+
+    .health-time {
+      font-size: 0.85rem;
+      color: #95a5a6;
+    }
+
+    /* Info Grid */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .info-box {
+      background: #f8f9fa;
+      padding: 1.5rem;
+      border-radius: 12px;
+      border-left: 4px solid #2a5298;
+    }
+
+    .info-box-label {
+      font-size: 0.85rem;
+      color: #7f8c8d;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .info-box-value {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #1e3c72;
+    }
+
+    /* Table Styles */
+    .care-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1.5rem;
+    }
+
+    .care-table thead {
+      background: #f8f9fa;
+      border-bottom: 2px solid #ecf0f1;
+    }
+
+    .care-table th {
+      padding: 1.2rem;
+      text-align: left;
+      font-weight: 600;
+      color: #1e3c72;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .care-table td {
+      padding: 1.2rem;
+      border-bottom: 1px solid #ecf0f1;
+      color: #34495e;
+    }
+
+    .care-table tbody tr:hover {
+      background: #f8f9fa;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border-radius: 25px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .status-active {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-caution {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    /* Notes Section */
+    .notes-container {
+      background: white;
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      margin-bottom: 2rem;
+      border-top: 4px solid #2a5298;
+    }
+
+    .note-item {
+      background: #f8f9fa;
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 1.2rem;
+      border-left: 4px solid #2a5298;
+      transition: all 0.3s ease;
+    }
+
+    .note-item:hover {
+      background: #ecf0f1;
+    }
+
+    .note-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.8rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .note-category {
+      background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
+      color: white;
+      padding: 0.4rem 1rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .note-time {
+      font-size: 0.85rem;
+      color: #7f8c8d;
+    }
+
+    .note-text {
+      color: #34495e;
+      line-height: 1.7;
+      font-size: 0.95rem;
+    }
+
+    /* Contact Section */
+    .contact-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .contact-item {
+      background: #f8f9fa;
+      padding: 1.5rem;
+      border-radius: 12px;
+      border-left: 4px solid #2a5298;
+    }
+
+    .contact-name {
+      font-weight: 700;
+      color: #1e3c72;
+      margin-bottom: 0.5rem;
+      font-size: 1.05rem;
+    }
+
+    .contact-role {
+      font-size: 0.85rem;
+      color: #7f8c8d;
+      margin-bottom: 0.8rem;
+    }
+
+    .contact-info {
+      font-size: 0.9rem;
+      color: #34495e;
+      margin-bottom: 0.3rem;
+    }
+
+    /* Quick Links */
+    .quick-links {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-link-custom {
+      background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
+      color: white;
+      padding: 0.8rem 1.5rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+
+    .btn-link-custom:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(42, 82, 152, 0.3);
+      color: white;
+      text-decoration: none;
+    }
+
+    .btn-link-secondary {
+      background: white;
+      color: #2a5298;
+      border: 2px solid #2a5298;
+    }
+
+    .btn-link-secondary:hover {
+      background: #f8f9fa;
+    }
+
+    /* Important Notice */
+    .important-notice {
+      background: linear-gradient(135deg, #fff5f0 0%, #ffe8df 100%);
+      border-left: 5px solid #d32f2f;
+      padding: 2rem;
+      border-radius: 12px;
+      margin-bottom: 2rem;
+    }
+
+    .notice-title {
+      font-weight: 700;
+      color: #1e3c72;
+      margin-bottom: 0.8rem;
+      font-size: 1.1rem;
+    }
+
+    .notice-text {
+      color: #34495e;
+      line-height: 1.7;
+    }
+
+    /* Footer */
+    .family-footer {
+      background: #f8f9fa;
+      padding: 2.5rem;
+      text-align: center;
+      border-top: 2px solid #ecf0f1;
+      margin-top: 3rem;
+    }
+
+    .footer-text {
+      color: #7f8c8d;
+      margin-bottom: 1.5rem;
+    }
+
+    .logout-btn {
+      background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
+      color: white;
+      border: none;
+      padding: 0.9rem 2rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .logout-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(211, 47, 47, 0.3);
+      color: white;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header-content {
+        grid-template-columns: 1fr;
+      }
+
+      .header-title {
+        font-size: 2rem;
+      }
+
+      .profile-image-header {
+        justify-content: center;
+      }
+
+      .profile-img-wrapper {
+        width: 150px;
+        height: 150px;
+      }
+
+      .header-meta {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .health-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .contact-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .care-table {
+        font-size: 0.9rem;
+      }
+
+      .care-table th,
+      .care-table td {
+        padding: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar-family">
+    <div class="container-fluid">
+      <div class="navbar-brand">
+        Care<span>Home</span> Resident Portal
       </div>
-      <div class="flex-grow-1">
-        <h2 class="mb-1 fw-bold">{{ patient.get_full_name }}</h2>
-        <div class="d-flex flex-wrap gap-2 mb-2">
-          <span class="stat-pill"><i class="bi bi-door-open me-1"></i>Room {{ patient.room_number|default:"—" }}</span>
-          <span class="stat-pill"><i class="bi bi-person me-1"></i>Age {{ patient.get_age }}</span>
-          <span class="stat-pill"><i class="bi bi-calendar-check me-1"></i>Admitted {{ patient.admission_date|date:"d M Y" }}</span>
+      <div class="ms-auto user-info">
+        <strong>{{ family_member.get_relation_display }} Access</strong> | {{ request.user.get_full_name }}
+      </div>
+    </div>
+  </nav>
+
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="header-content">
+      <div>
+        <h1 class="header-title">{{ patient.get_full_name }}</h1>
+        <p class="header-subtitle">Your family member's care overview and wellbeing updates</p>
+
+        <div class="header-meta">
+          <div class="meta-item">
+            <div class="meta-icon">
+              <i class="bi bi-door-open"></i>
+            </div>
+            <div class="meta-text">
+              <span class="meta-label">Room Number</span>
+              <span class="meta-value">{{ patient.room_number|default:"—" }}</span>
+            </div>
+          </div>
+
+          <div class="meta-item">
+            <div class="meta-icon">
+              <i class="bi bi-calendar-check"></i>
+            </div>
+            <div class="meta-text">
+              <span class="meta-label">Admitted</span>
+              <span class="meta-value">{{ patient.admission_date|date:"M d, Y" }}</span>
+            </div>
+          </div>
+
+          <div class="meta-item">
+            <div class="meta-icon">
+              <i class="bi bi-person-fill"></i>
+            </div>
+            <div class="meta-text">
+              <span class="meta-label">Your Relationship</span>
+              <span class="meta-value">{{ family_member.get_relation_display }}</span>
+            </div>
+          </div>
         </div>
-        <p class="mb-0 opacity-75 small">
-          <i class="bi bi-people me-1"></i>You are viewing as <strong>{{ family_member.get_relation_display }}</strong> of {{ patient.first_name }}
+      </div>
+
+      <div class="profile-image-header">
+        <div class="profile-img-wrapper">
+          <img src="https://api.dicebear.com/7.x/pixel-art/svg?seed={{ patient.get_full_name }}&size=250" alt="{{ patient.get_full_name }}">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="family-container">
+
+    <!-- Health Status Overview -->
+    <div class="health-grid">
+      <div class="health-card">
+        <div class="health-icon">
+          <i class="bi bi-heart-pulse"></i>
+        </div>
+        <div class="health-label">Heart Rate</div>
+        {% if latest_vitals %}
+          <div class="health-value">{{ latest_vitals.heart_rate|default:"—" }} bpm</div>
+          <div class="health-time">Last recorded {{ latest_vitals.recorded_at|timesince }} ago</div>
+        {% else %}
+          <div class="health-value">—</div>
+          <div class="health-time">No recent recording</div>
+        {% endif %}
+      </div>
+
+      <div class="health-card">
+        <div class="health-icon">
+          <i class="bi bi-thermometer-half"></i>
+        </div>
+        <div class="health-label">Temperature</div>
+        {% if latest_vitals %}
+          <div class="health-value">{{ latest_vitals.temperature|default:"—" }}°C</div>
+          <div class="health-time">Last recorded {{ latest_vitals.recorded_at|timesince }} ago</div>
+        {% else %}
+          <div class="health-value">—</div>
+          <div class="health-time">No recent recording</div>
+        {% endif %}
+      </div>
+
+      <div class="health-card">
+        <div class="health-icon">
+          <i class="bi bi-capsule"></i>
+        </div>
+        <div class="health-label">Health Status</div>
+        {% if latest_vitals %}
+          <div class="health-value">{{ latest_vitals.news2_label }}</div>
+          <div class="health-time">Checked {{ latest_vitals.recorded_at|timesince }} ago</div>
+        {% else %}
+          <div class="health-value">Unknown</div>
+          <div class="health-time">Awaiting assessment</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Personal Information -->
+    <div class="info-card">
+      <h3 class="card-title">
+        <i class="bi bi-person-badge"></i>
+        Personal Information
+      </h3>
+
+      <div class="info-grid">
+        <div class="info-box">
+          <div class="info-box-label">Full Name</div>
+          <div class="info-box-value">{{ patient.get_full_name }}</div>
+        </div>
+
+        <div class="info-box">
+          <div class="info-box-label">Age</div>
+          <div class="info-box-value">{{ patient.get_age }} years old</div>
+        </div>
+
+        <div class="info-box">
+          <div class="info-box-label">Care Level</div>
+          <div class="info-box-value">{{ patient.get_care_level_display|default:"Standard Care" }}</div>
+        </div>
+
+        <div class="info-box">
+          <div class="info-box-label">Known Allergies</div>
+          <div class="info-box-value">
+            {% if patient.allergies %}
+              {{ patient.allergies|truncatechars:50 }}
+            {% else %}
+              None recorded
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="info-box">
+          <div class="info-box-label">Emergency Contact</div>
+          <div class="info-box-value">{{ patient.emergency_contact|default:"—" }}</div>
+        </div>
+
+        <div class="info-box">
+          <div class="info-box-label">Admission Date</div>
+          <div class="info-box-value">{{ patient.admission_date|date:"d M Y" }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Care Team -->
+    <div class="info-card">
+      <h3 class="card-title">
+        <i class="bi bi-people-fill"></i>
+        Care Team Members
+      </h3>
+
+      <div class="contact-grid">
+        <div class="contact-item">
+          <div class="contact-name">Primary Care Assistant</div>
+          <div class="contact-role">Daily Care Coordinator</div>
+          <div class="contact-info">
+            <i class="bi bi-telephone me-2"></i>
+            Contact through facility
+          </div>
+        </div>
+
+        <div class="contact-item">
+          <div class="contact-name">Nursing Team</div>
+          <div class="contact-role">Health & Medication Management</div>
+          <div class="contact-info">
+            <i class="bi bi-clock me-2"></i>
+            Available 24/7
+          </div>
+        </div>
+
+        <div class="contact-item">
+          <div class="contact-name">Care Home Director</div>
+          <div class="contact-role">Overall Care Oversight</div>
+          <div class="contact-info">
+            <i class="bi bi-envelope me-2"></i>
+            Contact via facility
+          </div>
+        </div>
+      </div>
+
+      <p style="margin-top: 1.5rem; color: #7f8c8d; font-size: 0.9rem;">
+        <i class="bi bi-info-circle me-2"></i>
+        For urgent concerns or to speak with a care team member, please contact the facility directly.
+      </p>
+    </div>
+
+    <!-- Recent Care Notes -->
+    <div class="notes-container">
+      <h3 class="card-title">
+        <i class="bi bi-journal-text"></i>
+        Recent Care Updates
+      </h3>
+
+      {% if recent_notes %}
+        {% for note in recent_notes %}
+          <div class="note-item">
+            <div class="note-header">
+              <span class="note-category">{{ note.get_category_display }}</span>
+              <span class="note-time">
+                <i class="bi bi-calendar-event me-1"></i>
+                {{ note.created_at|date:"d M Y, H:i" }}
+              </span>
+            </div>
+            {% if note.note_text %}
+              <div class="note-text">
+                {{ note.note_text }}
+              </div>
+            {% endif %}
+            {% if note.mood %}
+              <div style="margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px solid #ecf0f1; color: #7f8c8d; font-size: 0.9rem;">
+                <strong>Mood:</strong> {{ note.get_mood_display }}
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% else %}
+        <div style="text-align: center; padding: 2rem; color: #7f8c8d;">
+          <i class="bi bi-inbox" style="font-size: 2.5rem; opacity: 0.3; display: block; margin-bottom: 1rem;"></i>
+          <p>No care updates have been recorded yet. Updates will appear here as the care team adds notes throughout the day.</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Recent Medications -->
+    <div class="info-card">
+      <h3 class="card-title">
+        <i class="bi bi-capsule"></i>
+        Recent Medication Administration
+      </h3>
+
+      <table class="care-table">
+        <thead>
+          <tr>
+            <th>Medication</th>
+            <th>Dosage</th>
+            <th>Date & Time</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if recent_medications %}
+            {% for med in recent_medications %}
+              <tr>
+                <td><strong>{{ med.drug_name }}</strong></td>
+                <td>{{ med.dosage }}</td>
+                <td>{{ med.administered_at|date:"d M Y, H:i" }}</td>
+                <td>
+                  <span class="status-badge status-active">
+                    <i class="bi bi-check-circle me-1"></i>Administered
+                  </span>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="4" style="text-align: center; color: #7f8c8d;">No medication records available</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+
+      <p style="margin-top: 1.5rem; color: #7f8c8d; font-size: 0.9rem;">
+        <i class="bi bi-info-circle me-2"></i>
+        This shows recent medication administration records. For detailed medication information or concerns, please contact the nursing team.
+      </p>
+    </div>
+
+    <!-- Important Information -->
+    <div class="important-notice">
+      <div class="notice-title">Important Information</div>
+      <div class="notice-text">
+        <p style="margin-bottom: 1rem;">
+          This portal provides you with daily updates about {{ patient.first_name }}'s wellbeing, including care notes, health checks, medications, and activities. We believe in keeping families informed and connected.
+        </p>
+        <p style="margin-bottom: 1rem;">
+          <strong>For medical emergencies or urgent health concerns:</strong> Please contact the care home immediately by phone. Do not rely on this portal for urgent matters.
+        </p>
+        <p>
+          <strong>Privacy & Confidentiality:</strong> This portal is secure and confidential. Only authorized family members with account access can view this information. Please protect your login credentials.
         </p>
       </div>
-      <div class="text-center text-md-end mt-2 mt-md-0">
-        <div class="opacity-75 small mb-1">Care updates this week</div>
-        <div class="fs-1 fw-bold">{{ weekly_notes_count }}</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Wellbeing Summary Cards -->
-  <div class="row g-3 mb-4">
-
-    <div class="col-md-4">
-      <div class="card wellbeing-card h-100">
-        <div class="card-body text-center py-4">
-          <div class="fs-1 mb-2">
-            {% if mood_notes %}
-              {% with mood=mood_notes.0.mood %}
-                {% if mood == 'happy' %}😊
-                {% elif mood == 'settled' %}😌
-                {% elif mood == 'anxious' %}😟
-                {% elif mood == 'low' %}😢
-                {% elif mood == 'agitated' %}😤
-                {% elif mood == 'confused' %}😕
-                {% elif mood == 'withdrawn' %}😶
-                {% elif mood == 'fatigued' %}😴
-                {% else %}🙂{% endif %}
-              {% endwith %}
-            {% else %}🙂{% endif %}
-          </div>
-          <h6 class="fw-bold mb-1">Latest Mood</h6>
-          {% if mood_notes %}
-          <span class="badge bg-success rounded-pill px-3">{{ mood_notes.0.get_mood_display }}</span>
-          <div class="text-muted small mt-2">{{ mood_notes.0.created_at|timesince }} ago</div>
-          {% else %}
-          <p class="text-muted small mb-0">No mood recorded recently</p>
-          {% endif %}
-        </div>
-      </div>
     </div>
 
-    <div class="col-md-4">
-      <div class="card wellbeing-card h-100">
-        <div class="card-body text-center py-4">
-          <div class="fs-1 mb-2">🍽️</div>
-          <h6 class="fw-bold mb-1">Latest Meal</h6>
-          {% if meal_notes %}
-          <span class="badge bg-warning text-dark rounded-pill px-3">{{ meal_notes.0.get_appetite_display|default:"Recorded" }}</span>
-          <div class="text-muted small mt-2">{{ meal_notes.0.get_meal_time_display|default:"Meal" }} &bull; {{ meal_notes.0.created_at|timesince }} ago</div>
-          {% else %}
-          <p class="text-muted small mb-0">No meal record recently</p>
-          {% endif %}
-        </div>
-      </div>
-    </div>
+    <!-- Quick Actions -->
+    <div class="info-card">
+      <h3 class="card-title">
+        <i class="bi bi-lightning-fill"></i>
+        Quick Actions
+      </h3>
 
-    <div class="col-md-4">
-      <div class="card wellbeing-card h-100">
-        <div class="card-body text-center py-4">
-          <div class="fs-1 mb-2">💓</div>
-          <h6 class="fw-bold mb-1">General Wellbeing</h6>
-          {% if latest_vitals %}
-          <span class="badge bg-{{ latest_vitals.news2_color }} rounded-pill px-3">{{ latest_vitals.news2_label }}</span>
-          <div class="text-muted small mt-2">Last checked {{ latest_vitals.recorded_at|timesince }} ago</div>
-          {% else %}
-          <p class="text-muted small mb-0">No recent health check</p>
-          {% endif %}
-        </div>
+      <div class="quick-links">
+        <button onclick="window.print()" class="btn-link-custom">
+          <i class="bi bi-printer"></i>
+          Print Overview
+        </button>
+        <a href="{% url 'family_timeline' %}" class="btn-link-custom">
+          <i class="bi bi-clock-history"></i>
+          View Full Timeline
+        </a>
+        <a href="{% url 'logout' %}" class="btn-link-custom btn-link-secondary">
+          <i class="bi bi-box-arrow-right"></i>
+          Sign Out
+        </a>
       </div>
     </div>
 
   </div>
 
-  <!-- Recent Updates -->
-  <div class="card mb-4">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-      <h5 class="fw-bold mb-0">
-        <i class="bi bi-journal-heart me-2" style="color:#0e7c7b;"></i>
-        Recent Updates about {{ patient.first_name }}
-      </h5>
-      <a href="{% url 'family_timeline' %}" class="btn btn-outline-primary btn-sm">
-        <i class="bi bi-clock-history me-1"></i>Full Timeline
-      </a>
-    </div>
-    <div class="card-body">
-      {% for note in recent_notes %}
-      <div class="note-card card mb-2">
-        <div class="card-body py-2 px-3">
-          <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-            <span class="badge text-bg-light text-dark border" style="font-size:.7rem;">
-              <i class="{{ note.category_icon }} me-1"></i>{{ note.get_category_display }}
-            </span>
-            {% if note.mood %}
-            <span class="badge bg-light text-dark border" style="font-size:.7rem;">
-              Mood: {{ note.get_mood_display }}
-            </span>
-            {% endif %}
-            <small class="text-muted ms-auto">{{ note.created_at|date:"d M Y, H:i" }}</small>
-          </div>
-          {% if note.note_text %}
-          <p class="mb-1 small">{{ note.note_text|truncatechars:200 }}</p>
-          {% endif %}
-          {% if note.obs_status %}
-          <p class="mb-0 small text-muted"><i class="bi bi-geo-alt me-1"></i>{{ note.get_obs_location_display }} — {{ note.get_obs_status_display }}</p>
-          {% endif %}
-          {% if note.appetite %}
-          <p class="mb-0 small text-muted"><i class="bi bi-cup-hot me-1"></i>Appetite: {{ note.get_appetite_display }}</p>
-          {% endif %}
-        </div>
-      </div>
-      {% empty %}
-      <div class="text-center py-4 text-muted">
-        <i class="bi bi-journal fs-2 d-block mb-2 opacity-25"></i>
-        <p class="mb-0">No updates yet. The care team will add notes as care is provided throughout the day.</p>
-      </div>
-      {% endfor %}
-    </div>
+  <!-- Footer -->
+  <div class="family-footer">
+    <p class="footer-text">
+      Professional care for your loved one. We're committed to transparency, quality care, and keeping families connected.
+    </p>
+    <p style="color: #bdc3c7; font-size: 0.85rem;">
+      Resident Portal v1.0 | Secure & Confidential | Last Updated: Today
+    </p>
   </div>
 
-  <!-- Notice -->
-  <div class="alert alert-info d-flex gap-3 align-items-start">
-    <i class="bi bi-info-circle-fill fs-5 flex-shrink-0 mt-1"></i>
-    <div class="small">
-      <strong>About this portal</strong> — This shows wellbeing and daily activity updates only.
-      Clinical records and medications are managed by the care team.
-      If you have concerns about {{ patient.first_name }}, please contact the care home directly.
-    </div>
-  </div>
-
-{% endblock %}
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

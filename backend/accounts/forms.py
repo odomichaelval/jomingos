@@ -54,10 +54,17 @@ class RegistrationForm(UserCreationForm):
         'class': 'form-control',
         'placeholder': 'Last Name',
     }))
+    role = forms.ChoiceField(
+        choices=User.ROLE_CHOICES,
+        required=True,
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+        })
+    )
 
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'email', 'password1', 'password2']
+        fields = ['username', 'first_name', 'last_name', 'email', 'role', 'password1', 'password2']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -72,6 +79,9 @@ class RegistrationForm(UserCreationForm):
         self.fields['password2'].widget.attrs.update({
             'class': 'form-control',
             'placeholder': 'Confirm Password',
+        })
+        self.fields['role'].widget.attrs.update({
+            'class': 'form-control',
         })
 
     def clean_email(self):
