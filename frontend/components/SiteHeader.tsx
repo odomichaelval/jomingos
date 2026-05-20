@@ -64,11 +64,21 @@ export default function SiteHeader() {
               <li>
                 <Link href="/contact" className={isActive("/contact") ? "active" : ""}>Contact</Link>
               </li>
-              <li>
-                <Link href="http://127.0.0.1:8000/" className={isActive("/http://127.0.0.1:8000/") ? "active" : ""}>Login</Link>
+              
+              <li className="dropdown">
+                <a href="#"><span>Get Started</span>{" "}<i className="bi bi-chevron-down toggle-dropdown"></i></a>
+
+                <ul>
+                  <li><Link href="https://jomingos.onrender.com/accounts/register" className={isActive("/register") ? "active" : ""}>
+                    Register </Link>
+                  </li>
+                  <li> <Link href="https://jomingos.onrender.com/accounts/login" className={isActive("/login") ? "active" : ""} >
+                    Login</Link>
+                  </li>
+                </ul>
               </li>
 
-            
+
             </ul>
 
             {/* Mobile toggle — handled by main.js */}

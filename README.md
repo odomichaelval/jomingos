@@ -1,5 +1,7 @@
 # JOMINGOS - Care Facility Management System
 
+# Githubrepository - (https://github.com/Ebujoe/JOMINGOS-clean)
+
 A complete healthcare management platform for care homes and nursing facilities. Built with Django backend and Next.js frontend. Handles everything from patient records to staff scheduling to medication tracking with real-time dashboards.
 
 ## Project Overview
@@ -48,19 +50,28 @@ JOMINGOS/
 
 ## Technology Stack
 
+### Deployment architecture 
+- **Frontend** - Vercel
+- **Backend API** - Render
+- **Database** - PostgreSQL
+- **Source Control** - GitHub
+
+
 ### Backend
 - **Django 4.2** - Web framework
 - **Django REST Framework** - API framework
 - **PostgreSQL/SQLite** - Database
 - **Gunicorn** - WSGI server
-- **Render/Heroku** - Hosting platform
+- **Render** - Hosting platform
 
 ### Frontend
 - **Next.js** - React framework
 - **React** - UI library
-- **Chart.js** - Data visualization
-- **Bootstrap 5** - UI components
-- **JWT** - Authentication
+- **Javascript** - For animations
+- **Bootstrap** - For styling
+- **CSS** - For styling
+- **HTML** - For structure
+
 
 ## Key Features
 
@@ -138,11 +149,24 @@ Visit: `http://localhost:3000`
 ### See Full Documentation
 
 - **Backend Setup & Deployment**: See `backend/README.md`
+- **Frontend Setup & Deployment**: See `frontend/README.md`
 - **Deployment Guide**: See `backend/DEPLOYMENT_QUICK_START.md`
 - **Shift Timer Feature**: See `backend/SHIFT_COUNTDOWN_TIMER.md`
 - **API Documentation**: Run backend and visit `/api/swagger/`
 
 ## Deployment
+
+### Easy Deployment (Vercel)
+
+Frontend:
+1. Push code to GitHub
+2. Sign up on Vercel.com
+3. Create New Project
+4. Create Project connected to GitHub
+5. Deploy
+6. Thnaks! Takes ~5 minutes
+
+See `frontend/Deployment.md` for detailed steps.
 
 ### Easy Deployment (Render)
 

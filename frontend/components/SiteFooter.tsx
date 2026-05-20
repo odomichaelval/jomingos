@@ -45,8 +45,8 @@ export default function Footer() {
                     <div className="nav-column">
                       <h6>About</h6>
                       <nav className="footer-nav">
-                        <a href="#!">About Us</a>
-                        <a href="#!">Services</a>
+                        <a href="/about">About Us</a>
+                        <a href="/services">Services</a>
                       </nav>
                     </div>
                   </div>
@@ -55,9 +55,9 @@ export default function Footer() {
                     <div className="nav-column">
                       <h6>Services</h6>
                       <nav className="footer-nav">
-                        <a href="#!">Care Note Taking</a>
-                        <a href="#!">Record Care Medications</a>
-                        <a href="#!">Track Care Vital Signs</a>
+                        <a href="/services">Care Note Taking</a>
+                        <a href="/services">Record Care Medications</a>
+                        <a href="/services">Track Care Vital Signs</a>
                       </nav>
                     </div>
                   </div>
@@ -66,9 +66,9 @@ export default function Footer() {
                     <div className="nav-column">
                       <h6>Departments</h6>
                       <nav className="footer-nav">
-                        <a href="#!">Doctors</a>
-                        <a href="#!">Nurses</a>
-                        <a href="#!">Care Assistants</a>
+                        <a href="/departments">Doctors</a>
+                        <a href="/departments">Nurses</a>
+                        <a href="/departments">Care Assistants</a>
                       </nav>
                     </div>
                   </div>
@@ -77,8 +77,8 @@ export default function Footer() {
                     <div className="nav-column">
                       <h6>Connect</h6>
                       <nav className="footer-nav">
-                        <a href="#!">Contact Us</a>
-                        <a href="#!">Social Media</a>
+                        <a href="/contact">Contact Us</a>
+                        <a href="/">Social Media</a>
                       </nav>
                     </div>
                   </div>
