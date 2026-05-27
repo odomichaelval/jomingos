@@ -27,6 +27,7 @@ def login_view(request):
 
 
 def register_view(request):
+    raise Http404 #disabled register page online
     if request.user.is_authenticated:
         return redirect(dashboard_url_for_user(request.user))
     form = RegistrationForm(request.POST or None)
