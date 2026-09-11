@@ -1,0 +1,341 @@
+{% extends 'base.html' %}
+{% block title %}Care Notes — {{ patient.get_full_name }}{% endblock %}
+{% block nav_notes %}active{% endblock %}
+{% block content %}
+<div class="app-content-header">
+  <div class="container-fluid">
+    <div class="row align-items-center">
+      <div class="col-sm-6"><h1 class="mb-0"><i class="bi bi-journal-text me-2"></i>Care Notes</h1></div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-end mb-0">
+          <li class="breadcrumb-item"><a href="{% url 'patient_detail' patient.pk %}">{{ patient.get_full_name }}</a></li>
+          <li class="breadcrumb-item active">Care Notes</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="app-content">
+  <div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <a href="{% url 'patient_detail' patient.pk %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back to Patient</a>
+      <a href="{% url 'add_care_note' patient.pk %}" class="btn btn-success btn-sm"><i class="bi bi-plus-lg me-1"></i>Add Care Note</a>
+    </div>
+
+    <!-- AI PERIOD SUMMARY PANEL -->
+    <div class="card mb-3 border-start border-4 border-primary shadow-sm">
+      <div class="card-body">
+        <h6 class="mb-2"><i class="bi bi-stars text-primary me-2"></i>AI Period Summary</h6>
+        <p class="text-muted small mb-3">
+          Select a period to get an AI-generated summary of this resident's care notes, instead of reading through each entry.
+        </p>
+
+        <!-- Quick select buttons -->
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <button type="button" class="btn btn-sm btn-outline-secondary quick-range" data-range="today">Today</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary quick-range" data-range="yesterday">Yesterday</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary quick-range" data-range="7">Last 7 Days</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary quick-range" data-range="30">Last 30 Days</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary quick-range" data-range="month">This Month</button>
+        </div>
+
+        <!-- Calendar range picker -->
+        <div class="row g-2 align-items-end">
+          <div class="col-auto">
+            <label class="form-label small fw-semibold mb-1">Start Date</label>
+            <input type="date" id="summary-start-date" class="form-control form-control-sm">
+          </div>
+          <div class="col-auto">
+            <label class="form-label small fw-semibold mb-1">End Date</label>
+            <input type="date" id="summary-end-date" class="form-control form-control-sm">
+          </div>
+          <div class="col-auto">
+            <button type="button" id="btn-generate-summary" class="btn btn-primary btn-sm">
+              <i class="bi bi-magic me-1"></i>Generate Summary
+            </button>
+          </div>
+        </div>
+
+        <!-- Status / loading -->
+        <div id="summary-status" class="mt-3 d-none">
+          <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+          <span>Generating summary...</span>
+        </div>
+
+        <!-- Result -->
+        <!-- Result -->
+      <div id="summary-result" class="mt-3 d-none">
+        <div class="border rounded p-3 bg-light">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong class="small" id="summary-period-label"></strong>
+            <span class="badge text-bg-secondary" id="summary-note-count"></span>
+          </div>
+          <p class="mb-2 small" id="summary-text"></p>
+
+          <button type="button" id="btn-explain" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-question-circle me-1"></i>Explain This Summary
+          </button>
+
+          <!-- Explainability panel — hidden until "Explain" is clicked -->
+          <div id="explain-panel" class="mt-3 d-none">
+
+            <!-- Evaluation metrics -->
+            <div class="border-top pt-3 mb-3">
+              <h6 class="small fw-bold mb-2"><i class="bi bi-graph-up me-1"></i>Summary Quality Metrics</h6>
+              <p class="text-muted small mb-2">
+                These scores measure how closely the AI summary reflects the wording and meaning of the original notes it was generated from.
+              </p>
+              <div class="d-flex flex-wrap gap-2">
+                <span class="badge text-bg-light text-dark border">ROUGE-1: <span id="metric-rouge1"></span></span>
+                <span class="badge text-bg-light text-dark border">ROUGE-2: <span id="metric-rouge2"></span></span>
+                <span class="badge text-bg-light text-dark border">ROUGE-L: <span id="metric-rougeL"></span></span>
+                <span class="badge text-bg-light text-dark border">BLEU: <span id="metric-bleu"></span></span>
+                <span class="badge text-bg-light text-dark border">BERTScore F1: <span id="metric-bertscore"></span></span>
+              </div>
+            </div>
+
+            <!-- Evidence links -->
+            <div class="border-top pt-3">
+              <h6 class="small fw-bold mb-2"><i class="bi bi-link-45deg me-1"></i>Evidence — What This Summary Is Based On</h6>
+              <p class="text-muted small mb-2">
+                Each sentence below is matched to the original care note it was most likely drawn from, so you can verify the AI's claim yourself.
+              </p>
+              <div id="evidence-list"></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+        <!-- Error -->
+        <div id="summary-error" class="mt-3 alert alert-warning small mb-0 d-none"></div>
+      </div>
+    </div>
+
+    {% for note in notes %}
+    <div class="card mb-2 border-start border-4 border-{{ note.priority_color }}">
+      <div class="card-body py-2 px-3">
+        <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+          <i class="bi {{ note.category_icon }} text-primary"></i>
+          <span class="badge text-bg-light text-dark border small">{{ note.get_category_display }}</span>
+          <span class="badge text-bg-{{ note.priority_color }} small">{{ note.get_priority_display }}</span>
+          <small class="text-muted ms-auto">{{ note.author.get_full_name|default:note.author.username }} &bull; {{ note.created_at|date:"d M Y H:i" }}</small>
+          <form method="post" action="{% url 'delete_care_note' patient.pk note.pk %}"
+                onsubmit="return confirm('Delete this care note? This cannot be undone.');" class="ms-1">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" title="Delete note">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
+        </div>
+        <p class="mb-0 small">{{ note.note_text }}</p>
+      </div>
+    </div>
+    {% empty %}
+    <div class="card"><div class="card-body text-center text-muted py-5">No care notes recorded.</div></div>
+    {% endfor %}
+        <!-- Pagination -->
+    {% if notes.has_other_pages %}
+    <nav class="mt-3">
+      <ul class="pagination pagination-sm justify-content-center">
+        {% if notes.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ notes.previous_page_number }}{% if category %}&category={{ category }}{% endif %}">Previous</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">Previous</span></li>
+        {% endif %}
+
+        {% for num in notes.paginator.page_range %}
+          {% if num == notes.number %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+          {% else %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ num }}{% if category %}&category={{ category }}{% endif %}">{{ num }}</a>
+            </li>
+          {% endif %}
+        {% endfor %}
+
+        {% if notes.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ notes.next_page_number }}{% if category %}&category={{ category }}{% endif %}">Next</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">Next</span></li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+  </div>
+</div>
+
+{% csrf_token %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const startInput = document.getElementById('summary-start-date');
+const endInput = document.getElementById('summary-end-date');
+const btnGenerate = document.getElementById('btn-generate-summary');
+const summaryStatus = document.getElementById('summary-status');
+const summaryResult = document.getElementById('summary-result');
+const summaryError = document.getElementById('summary-error');
+const summaryText = document.getElementById('summary-text');
+const summaryPeriodLabel = document.getElementById('summary-period-label');
+const summaryNoteCount = document.getElementById('summary-note-count');
+
+function formatDateInput(date) {
+    return date.getFullYear() + '-' +
+        String(date.getMonth() + 1).padStart(2, '0') + '-' +
+        String(date.getDate()).padStart(2, '0');
+}
+
+// Quick-select buttons compute the range and fill the date inputs
+document.querySelectorAll('.quick-range').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.quick-range').forEach(b => b.classList.remove('active', 'btn-secondary'));
+        btn.classList.add('active');
+
+        const today = new Date();
+        let start, end;
+
+        switch (btn.dataset.range) {
+            case 'today':
+                start = today;
+                end = today;
+                break;
+            case 'yesterday':
+                start = new Date(today);
+                start.setDate(today.getDate() - 1);
+                end = new Date(start);
+                break;
+            case '7':
+                start = new Date(today);
+                start.setDate(today.getDate() - 6); // inclusive of today = 7 days total
+                end = today;
+                break;
+            case '30':
+                start = new Date(today);
+                start.setDate(today.getDate() - 29);
+                end = today;
+                break;
+            case 'month':
+                start = new Date(today.getFullYear(), today.getMonth(), 1);
+                end = today;
+                break;
+        }
+
+        startInput.value = formatDateInput(start);
+        endInput.value = formatDateInput(end);
+    });
+});
+
+// Clear the "active" quick-button highlight if user edits dates manually
+[startInput, endInput].forEach(input => {
+    input.addEventListener('change', () => {
+        document.querySelectorAll('.quick-range').forEach(b => b.classList.remove('active', 'btn-secondary'));
+    });
+});
+
+btnGenerate.addEventListener('click', async () => {
+    summaryError.classList.add('d-none');
+    summaryResult.classList.add('d-none');
+
+    if (!startInput.value || !endInput.value) {
+        summaryError.textContent = 'Please select a start and end date, or use a quick-select option.';
+        summaryError.classList.remove('d-none');
+        return;
+    }
+
+    summaryStatus.classList.remove('d-none');
+    btnGenerate.disabled = true;
+
+    const formData = new FormData();
+    formData.append('start_date', startInput.value);
+    formData.append('end_date', endInput.value);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+    try {
+        const response = await fetch("{% url 'summarize_care_notes' patient.pk %}", {
+            method: 'POST',
+            body: formData,
+        });
+        const data = await response.json();
+
+        summaryStatus.classList.add('d-none');
+        btnGenerate.disabled = false;
+
+        if (data.error) {
+            summaryError.textContent = data.error;
+            summaryError.classList.remove('d-none');
+            return;
+        }
+
+        summaryPeriodLabel.textContent = `${data.start_date} to ${data.end_date}`;
+        summaryNoteCount.textContent = `${data.note_count} note${data.note_count === 1 ? '' : 's'}`;
+        summaryText.textContent = data.summary;
+        summaryResult.classList.remove('d-none');
+
+          // Populate metrics
+        document.getElementById('metric-rouge1').textContent = data.metrics.rouge1;
+        document.getElementById('metric-rouge2').textContent = data.metrics.rouge2;
+        document.getElementById('metric-rougeL').textContent = data.metrics.rougeL;
+        document.getElementById('metric-bleu').textContent = data.metrics.bleu;
+        document.getElementById('metric-bertscore').textContent = data.metrics.bertscore_f1;
+
+        // Populate evidence links
+        renderEvidenceLinks(data.evidence_links);
+
+        // Reset explain panel to collapsed state for the new summary
+        explainPanel.classList.add('d-none');
+        btnExplain.innerHTML = '<i class="bi bi-question-circle me-1"></i>Explain This Summary';
+
+    } catch (err) {
+        summaryStatus.classList.add('d-none');
+        btnGenerate.disabled = false;
+        summaryError.textContent = 'Network error. Please try again.';
+        summaryError.classList.remove('d-none');
+    }
+});
+
+// Explainability panel toggle
+const btnExplain = document.getElementById('btn-explain');
+const explainPanel = document.getElementById('explain-panel');
+const evidenceList = document.getElementById('evidence-list');
+
+btnExplain.addEventListener('click', () => {
+    explainPanel.classList.toggle('d-none');
+    btnExplain.innerHTML = explainPanel.classList.contains('d-none')
+        ? '<i class="bi bi-question-circle me-1"></i>Explain This Summary'
+        : '<i class="bi bi-chevron-up me-1"></i>Hide Explanation';
+});
+
+function similarityColor(score) {
+    if (score >= 0.7) return 'success';
+    if (score >= 0.5) return 'warning';
+    return 'secondary';
+}
+
+function renderEvidenceLinks(links) {
+    evidenceList.innerHTML = '';
+    links.forEach(link => {
+        const pct = Math.round(link.similarity * 100);
+        const color = similarityColor(link.similarity);
+        const item = document.createElement('div');
+        item.className = 'card mb-2';
+        item.innerHTML = `
+            <div class="card-body py-2 px-3">
+                <p class="mb-1 small fw-semibold">"${link.summary_sentence}"</p>
+                <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                    <span class="badge text-bg-${color}">${pct}% match</span>
+                    <span class="badge text-bg-light text-dark border">${link.matched_note_category}</span>
+                    <small class="text-muted">${link.matched_note_date}</small>
+                </div>
+                <p class="mb-0 small text-muted">Source note: "${link.matched_note_text}"</p>
+            </div>
+        `;
+        evidenceList.appendChild(item);
+    });
+}
+</script>
+{% endblock %}

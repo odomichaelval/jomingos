@@ -1,0 +1,12 @@
+<!-- vitals/templates/vitals/_field.html -->
+<div class="{{ col_class|default:'col-md-3 col-6' }}">
+  <label class="form-label fw-semibold small">
+    <i class="bi {{ icon }} {{ icon_color }} me-1"></i>{{ label }}
+  </label>
+  {{ field }}
+  {% if field.errors %}
+    <div class="invalid-feedback d-block" style="font-size:0.75rem;">
+      <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ field.errors.0 }}
+    </div>
+  {% endif %}
+</div>

@@ -1,0 +1,1451 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.css" rel="stylesheet">
+<style>
+  :root {
+    --primary-color: #0d6efd;
+    --danger-color: #dc3545;
+    --success-color: #198754;
+    --warning-color: #ffc107;
+    --dark-color: #212529;
+    --light-color: #f8f9fa;
+    --text-muted: #6c757d;
+    --border-radius: 8px;
+    --transition: all 0.3s ease;
+    --box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --box-shadow-hover: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  }
+
+  body {
+    background-color: #f5f7fa;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  body.dark-mode {
+    background-color: #1a1d23;
+    color: #e0e0e0;
+  }
+
+  /* Animated number counter */
+  .stat-card {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+    transition: var(--transition);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  body.dark-mode .stat-card {
+    background: #2d3139;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .stat-card:hover {
+    box-shadow: var(--box-shadow-hover);
+    transform: translateY(-2px);
+  }
+
+  .stat-card .stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0.5rem 0;
+    color: var(--primary-color);
+  }
+
+  .stat-card .stat-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .stat-card .stat-icon {
+    font-size: 2rem;
+    opacity: 0.3;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Shift status indicator */
+  .shift-status-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+    margin-bottom: 1.5rem;
+  }
+
+  .shift-status-card.day-shift {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  }
+
+  .shift-status-card.night-shift {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  }
+
+  .shift-label {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+  }
+
+  .shift-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+
+  .shift-progress-bar {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+  }
+
+  .shift-progress-fill {
+    height: 100%;
+    background: white;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+  }
+
+  .shift-time-info {
+    font-size: 0.9rem;
+    opacity: 0.95;
+  }
+
+  /* Notification center */
+  .notification-bell {
+    position: relative;
+    cursor: pointer;
+    font-size: 1.3rem;
+    transition: var(--transition);
+  }
+
+  .notification-bell:hover {
+    color: var(--primary-color);
+  }
+
+  .notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: var(--danger-color);
+    color: white;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .notification-panel {
+    position: absolute;
+    top: 45px;
+    right: 0;
+    width: 380px;
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow-hover);
+    z-index: 1000;
+    max-height: 400px;
+    overflow-y: auto;
+    display: none;
+  }
+
+  body.dark-mode .notification-panel {
+    background: #2d3139;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .notification-panel.active {
+    display: block;
+  }
+
+  .notification-item {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    transition: var(--transition);
+    cursor: pointer;
+  }
+
+  body.dark-mode .notification-item {
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .notification-item:hover {
+    background: #f8f9fa;
+  }
+
+  body.dark-mode .notification-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .notification-item.unread {
+    background: rgba(13, 110, 253, 0.05);
+  }
+
+  .notification-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .notification-message {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .notification-time {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  /* KPI Cards */
+  .kpi-card {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+    border-left: 4px solid var(--primary-color);
+    transition: var(--transition);
+  }
+
+  body.dark-mode .kpi-card {
+    background: #2d3139;
+  }
+
+  .kpi-card:hover {
+    box-shadow: var(--box-shadow-hover);
+  }
+
+  .kpi-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin: 0.5rem 0;
+  }
+
+  .kpi-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .kpi-card.success {
+    border-left-color: var(--success-color);
+  }
+
+  .kpi-card.success .kpi-value {
+    color: var(--success-color);
+  }
+
+  .kpi-card.warning {
+    border-left-color: var(--warning-color);
+  }
+
+  .kpi-card.warning .kpi-value {
+    color: var(--warning-color);
+  }
+
+  .kpi-card.danger {
+    border-left-color: var(--danger-color);
+  }
+
+  .kpi-card.danger .kpi-value {
+    color: var(--danger-color);
+  }
+
+  /* Chart containers */
+  .chart-container {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+    margin-bottom: 1.5rem;
+  }
+
+  body.dark-mode .chart-container {
+    background: #2d3139;
+  }
+
+  .chart-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: var(--dark-color);
+  }
+
+  body.dark-mode .chart-title {
+    color: #e0e0e0;
+  }
+
+  .chart-wrapper {
+    position: relative;
+    height: 300px;
+  }
+
+  /* Patient cards */
+  .patient-card {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 1.25rem;
+    box-shadow: var(--box-shadow);
+    margin-bottom: 1rem;
+    transition: var(--transition);
+    border-left: 4px solid var(--primary-color);
+  }
+
+  body.dark-mode .patient-card {
+    background: #2d3139;
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .patient-card:hover {
+    box-shadow: var(--box-shadow-hover);
+    transform: translateX(4px);
+  }
+
+  .patient-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.8rem;
+    gap: 1rem;
+  }
+
+  .patient-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .patient-info {
+    flex: 1;
+  }
+
+  .patient-name {
+    font-weight: 600;
+    color: var(--dark-color);
+    margin-bottom: 0.3rem;
+  }
+
+  body.dark-mode .patient-name {
+    color: #e0e0e0;
+  }
+
+  .patient-meta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .patient-action {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .patient-action .btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  /* Quick actions */
+  .quick-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    border: 2px solid rgba(0, 0, 0, 0.08);
+    background: white;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--dark-color);
+    text-decoration: none;
+  }
+
+  body.dark-mode .quick-action-btn {
+    background: #2d3139;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #e0e0e0;
+  }
+
+  .quick-action-btn:hover {
+    border-color: var(--primary-color);
+    background: rgba(13, 110, 253, 0.05);
+    transform: translateY(-2px);
+  }
+
+  .quick-action-icon {
+    font-size: 1.8rem;
+    color: var(--primary-color);
+  }
+
+  /* Dark mode toggle */
+  .theme-toggle {
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: var(--transition);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: white;
+  }
+
+  body.dark-mode .theme-toggle {
+    background: #2d3139;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .theme-toggle:hover {
+    background: var(--light-color);
+    transform: scale(1.05);
+  }
+
+  body.dark-mode .theme-toggle:hover {
+    background: #393f4a;
+  }
+
+  /* Header section */
+  .dashboard-header {
+    background: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+    box-shadow: var(--box-shadow);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  body.dark-mode .dashboard-header {
+    background: #2d3139;
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .dashboard-header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .dashboard-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--dark-color);
+  }
+
+  body.dark-mode .dashboard-title {
+    color: #e0e0e0;
+  }
+
+  .dashboard-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  /* Weather widget */
+  .weather-widget {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+  }
+
+  body.dark-mode .weather-widget {
+    background: #2d3139;
+  }
+
+  .weather-main {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .weather-icon {
+    font-size: 3rem;
+  }
+
+  .weather-temp {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--dark-color);
+  }
+
+  body.dark-mode .weather-temp {
+    color: #e0e0e0;
+  }
+
+  .weather-desc {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  /* High risk alert */
+  .high-risk-container {
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--box-shadow);
+    margin-bottom: 1.5rem;
+  }
+
+  .high-risk-header {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    padding: 1.25rem;
+    font-weight: 600;
+  }
+
+  .high-risk-list {
+    background: white;
+  }
+
+  body.dark-mode .high-risk-list {
+    background: #2d3139;
+  }
+
+  .risk-item {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  body.dark-mode .risk-item {
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .risk-item:last-child {
+    border-bottom: none;
+  }
+
+  /* Activity feed */
+  .activity-container {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+  }
+
+  body.dark-mode .activity-container {
+    background: #2d3139;
+  }
+
+  .activity-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .activity-item {
+    padding: 0.8rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    display: flex;
+    gap: 1rem;
+    font-size: 0.9rem;
+  }
+
+  body.dark-mode .activity-item {
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .activity-item:last-child {
+    border-bottom: none;
+  }
+
+  .activity-icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    margin-top: 0.2rem;
+  }
+
+  .activity-content {
+    flex: 1;
+  }
+
+  .activity-desc {
+    color: var(--dark-color);
+  }
+
+  body.dark-mode .activity-desc {
+    color: #e0e0e0;
+  }
+
+  .activity-time {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .stat-card {
+      padding: 1rem;
+    }
+
+    .stat-card .stat-value {
+      font-size: 2rem;
+    }
+
+    .chart-wrapper {
+      height: 250px;
+    }
+
+    .notification-panel {
+      width: 100vw;
+      right: -1rem;
+    }
+
+    .dashboard-header-content {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+
+    .dashboard-controls {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
+
+  /* Loading animation */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .animate-load {
+    animation: pulse 2s infinite;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Dashboard Header -->
+<div class="dashboard-header">
+  <div class="container-fluid">
+    <div class="dashboard-header-content">
+      <div>
+        <h1 class="dashboard-title">Clinical Dashboard</h1>
+        <small class="text-muted">Real-time operational overview</small>
+      </div>
+      <div class="dashboard-controls">
+        <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
+          <i class="bi bi-moon" id="themeIcon"></i>
+        </button>
+        <div class="notification-bell" id="notificationBell" title="Notifications">
+          <i class="bi bi-bell-fill"></i>
+          {% if notifications_count > 0 %}
+          <span class="notification-badge" id="notificationBadge">{{ notifications_count }}</span>
+          {% endif %}
+          <div class="notification-panel" id="notificationPanel">
+            {% if unread_notifications %}
+              {% for notif in unread_notifications %}
+              <div class="notification-item unread" onclick="markNotificationRead({{ notif.id }})">
+                <div class="notification-title">{{ notif.title }}</div>
+                <div class="notification-message">{{ notif.message }}</div>
+                <div class="notification-time">{{ notif.created_at|timesince }} ago</div>
+              </div>
+              {% endfor %}
+            {% else %}
+              <div style="padding: 2rem; text-align: center; color: #999;">
+                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">Bell is quiet</div>
+                <div style="font-size: 0.85rem;">No new notifications</div>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="app-content">
+  <div class="container-fluid">
+
+    <!-- Feature 3: Shift Status Indicator with Live Countdown -->
+    <div class="shift-status-card {% if shift_info.type == 'day' %}day-shift{% else %}night-shift{% endif %}" id="shiftStatusCard">
+      <div class="shift-header">
+        <div>
+          <div class="shift-label">Current Shift</div>
+          <div class="shift-title">{{ shift_info.label }}</div>
+        </div>
+        <div class="shift-times">
+          <div class="shift-time-badge">
+            <i class="bi bi-clock"></i>
+            <span id="shiftStartTime">{{ shift_info.start|time:"H:i" }}</span>
+          </div>
+          <div class="shift-time-badge end">
+            <i class="bi bi-clock"></i>
+            <span id="shiftEndTime">{{ shift_info.end|time:"H:i" }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="shift-progress-bar">
+        <div class="shift-progress-fill" id="shiftProgressFill" style="width: {{ shift_info.progress }}%;"></div>
+      </div>
+
+      <div class="shift-countdown-container">
+        <div class="countdown-timer" id="countdownTimer">
+          <div class="countdown-display">
+            <span class="countdown-value" id="countdownHours">0</span>
+            <span class="countdown-separator">:</span>
+            <span class="countdown-value" id="countdownMinutes">00</span>
+            <span class="countdown-separator">:</span>
+            <span class="countdown-value" id="countdownSeconds">00</span>
+          </div>
+          <div class="countdown-label">Time until end of shift</div>
+        </div>
+
+        <div class="shift-info-compact">
+          <div class="info-item">
+            <i class="bi bi-percent"></i>
+            <span id="shiftProgressPercent">{{ shift_info.progress }}%</span> complete
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      .shift-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+      }
+
+      .shift-times {
+        display: flex;
+        gap: 0.75rem;
+      }
+
+      .shift-time-badge {
+        background: rgba(255, 255, 255, 0.15);
+        padding: 0.5rem 0.875rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        color: rgba(255, 255, 255, 0.9);
+        transition: background 0.3s ease;
+      }
+
+      .shift-time-badge:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .shift-time-badge i {
+        opacity: 0.8;
+      }
+
+      .shift-countdown-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-top: 1.5rem;
+        align-items: center;
+      }
+
+      @media (max-width: 768px) {
+        .shift-countdown-container {
+          grid-template-columns: 1fr;
+          gap: 1rem;
+        }
+
+        .shift-header {
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
+        .shift-times {
+          width: 100%;
+          justify-content: flex-start;
+        }
+      }
+
+      .countdown-timer {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        text-align: center;
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+      }
+
+      .countdown-display {
+        font-size: 2.5rem;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        color: rgba(255, 255, 255, 0.95);
+        font-family: 'Courier New', monospace;
+        line-height: 1.2;
+        margin-bottom: 0.5rem;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      }
+
+      .countdown-value {
+        display: inline-block;
+        min-width: 3rem;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+      }
+
+      .countdown-separator {
+        margin: 0 0.25rem;
+        opacity: 0.8;
+      }
+
+      .countdown-label {
+        font-size: 0.875rem;
+        color: rgba(255, 255, 255, 0.75);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 0.75rem;
+        font-weight: 500;
+      }
+
+      .shift-info-compact {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 1rem 1.5rem;
+        border-radius: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        justify-content: center;
+      }
+
+      .info-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.95rem;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .info-item i {
+        font-size: 1.125rem;
+        opacity: 0.85;
+      }
+
+      /* Pulsing animation when close to shift end */
+      .countdown-timer.shift-ending .countdown-value {
+        animation: pulse-end 1s ease-in-out infinite;
+      }
+
+      @keyframes pulse-end {
+        0%, 100% {
+          box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.2);
+        }
+        50% {
+          box-shadow: 0 0 0 8px rgba(255, 255, 255, 0.05);
+        }
+      }
+
+      /* Dark mode adjustments */
+      .dark-mode .countdown-timer {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .dark-mode .countdown-value {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+
+      .dark-mode .shift-info-compact {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .dark-mode .shift-time-badge {
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      .dark-mode .shift-time-badge:hover {
+        background: rgba(255, 255, 255, 0.18);
+      }
+    </style>
+
+    <!-- Feature 1: Animated Statistics Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-3 col-md-6">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+          <div class="stat-label">Active Patients</div>
+          <div class="stat-value" data-value="{{ total_patients }}">0</div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="bi bi-journal-text"></i></div>
+          <div class="stat-label">Care Notes Today</div>
+          <div class="stat-value" data-value="{{ notes_today }}">0</div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="bi bi-capsule"></i></div>
+          <div class="stat-label">Medications Given</div>
+          <div class="stat-value" data-value="{{ meds_today }}">0</div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="bi bi-person-badge"></i></div>
+          <div class="stat-label">Staff on Duty</div>
+          <div class="stat-value" data-value="{{ staff_on_duty }}">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature 2: Enhanced Weather Widget -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-9">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon"><i class="bi bi-heart-pulse"></i></div>
+              <div class="stat-label">Vitals Recorded</div>
+              <div class="stat-value" data-value="{{ vitals_today }}">0</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon"><i class="bi bi-hospital"></i></div>
+              <div class="stat-label">Nursing Care</div>
+              <div class="stat-value" data-value="{{ nursing_patients }}">0</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon"><i class="bi bi-person-heart"></i></div>
+              <div class="stat-label">Dementia Care</div>
+              <div class="stat-value" data-value="{{ dementia_patients }}">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-3">
+        <div class="weather-widget">
+          {% if weather.current_temp %}
+          <div class="weather-main">
+            <div class="weather-icon"><i class="bi bi-cloud-sun"></i></div>
+            <div>
+              <div class="weather-temp">{{ weather.current_temp }}C</div>
+              <div class="weather-desc">{{ weather.description }}</div>
+            </div>
+          </div>
+          <div style="font-size: 0.85rem; color: #666;">
+            Wind: {{ weather.wind_speed }} km/h<br>
+            Humidity: {{ weather.humidity }}%
+          </div>
+          {% else %}
+          <div style="text-align: center; padding: 1rem;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;"><i class="bi bi-cloud-slash"></i></div>
+            <div style="font-size: 0.9rem; color: #999;">Weather unavailable</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature 5: Performance KPI Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="kpi-card success">
+          <div class="kpi-label">Handover Completion</div>
+          <div class="kpi-value">{{ kpi_metrics.handover_completion }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label">Avg Response Time</div>
+          <div class="kpi-value">{{ kpi_metrics.avg_response_time }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="kpi-card success">
+          <div class="kpi-label">Care Plan Adherence</div>
+          <div class="kpi-value">{{ kpi_metrics.adherence_rate }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="kpi-card danger">
+          <div class="kpi-label">Safety Incidents</div>
+          <div class="kpi-value">{{ kpi_metrics.incidents_this_month }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature 10: Interactive Charts -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-6">
+        <div class="chart-container">
+          <div class="chart-title">Care Notes Trend (Last 7 Days)</div>
+          <div class="chart-wrapper">
+            <canvas id="notesChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="chart-container">
+          <div class="chart-title">Patient Care Level Distribution</div>
+          <div class="chart-wrapper">
+            <canvas id="careLevelChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature 4: Role-Based Quick Actions -->
+    <div class="row g-3 mb-4">
+      <div class="col-12">
+        <div style="background: white; border-radius: var(--border-radius); padding: 1.5rem; box-shadow: var(--box-shadow);">
+          <h5 style="margin-bottom: 1.5rem; font-weight: 600;">Quick Actions</h5>
+          <div class="row g-3">
+            {% if request.user.is_nurse %}
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'patient_list' %}" class="quick-action-btn">
+                <i class="bi bi-activity quick-action-icon"></i>
+                <span>Record Observations</span>
+              </a>
+            </div>
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'patient_list' %}" class="quick-action-btn">
+                <i class="bi bi-capsule-pill quick-action-icon"></i>
+                <span>Medication Round</span>
+              </a>
+            </div>
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'shift_handover' %}" class="quick-action-btn">
+                <i class="bi bi-clipboard-check quick-action-icon"></i>
+                <span>Prepare Handover</span>
+              </a>
+            </div>
+            {% elif request.user.is_doctor %}
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'patient_list' %}" class="quick-action-btn">
+                <i class="bi bi-people quick-action-icon"></i>
+                <span>Review Residents</span>
+              </a>
+            </div>
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'patient_list' %}" class="quick-action-btn">
+                <i class="bi bi-capsule quick-action-icon"></i>
+                <span>Medication Activity</span>
+              </a>
+            </div>
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'patient_list' %}" class="quick-action-btn">
+                <i class="bi bi-heart-pulse quick-action-icon"></i>
+                <span>Recent Vitals</span>
+              </a>
+            </div>
+            {% elif request.user.is_admin %}
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'staff_list' %}" class="quick-action-btn">
+                <i class="bi bi-person-badge quick-action-icon"></i>
+                <span>Manage Staff</span>
+              </a>
+            </div>
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'patient_add' %}" class="quick-action-btn">
+                <i class="bi bi-person-plus quick-action-icon"></i>
+                <span>Register Resident</span>
+              </a>
+            </div>
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'shift_handover' %}" class="quick-action-btn">
+                <i class="bi bi-clipboard2-pulse quick-action-icon"></i>
+                <span>Open Handover</span>
+              </a>
+            </div>
+            {% else %}
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'patient_list' %}" class="quick-action-btn">
+                <i class="bi bi-journal-plus quick-action-icon"></i>
+                <span>Log Care Note</span>
+              </a>
+            </div>
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'patient_list' %}" class="quick-action-btn">
+                <i class="bi bi-people quick-action-icon"></i>
+                <span>Resident List</span>
+              </a>
+            </div>
+            <div class="col-md-4 col-sm-6">
+              <a href="{% url 'patient_list' %}" class="quick-action-btn">
+                <i class="bi bi-exclamation-triangle quick-action-icon"></i>
+                <span>Escalate Concern</span>
+              </a>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature 7: High Risk Alerts -->
+    {% if high_risk_patients %}
+    <div class="row g-3 mb-4">
+      <div class="col-12">
+        <div class="high-risk-container">
+          <div class="high-risk-header">
+            <i class="bi bi-exclamation-octagon-fill"></i> NEWS2 High Risk Alerts ({{ high_risk_patients|length }})
+          </div>
+          <div class="high-risk-list">
+            {% for patient in high_risk_patients %}
+            <div class="risk-item">
+              <div style="flex: 1;">
+                <div style="font-weight: 600;">{{ patient.get_full_name }}</div>
+                <div style="font-size: 0.85rem; color: #666;">
+                  Room {{ patient.room_number }} - NEWS2 Score: {{ patient.latest_news2 }} (HIGH RISK)
+                </div>
+              </div>
+              <div>
+                <a href="{% url 'patient_detail' patient.pk %}" class="btn btn-sm btn-danger">Review</a>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Feature 6: Patient Summary Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-8">
+        <h5 style="margin-bottom: 1.5rem; font-weight: 600;">Active Patients Overview</h5>
+        {% for patient in recent_patients %}
+        <div class="patient-card">
+          <div class="patient-header">
+            <div class="patient-avatar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+              {{ patient.initials }}
+            </div>
+            <div class="patient-info">
+              <div class="patient-name">{{ patient.get_full_name }}</div>
+              <div class="patient-meta">
+                <span class="badge bg-light text-dark" style="margin-right: 0.5rem;">{{ patient.get_care_level_display }}</span>
+                <span>Room {{ patient.room_number }}</span>
+              </div>
+            </div>
+            <div class="patient-action">
+              <a href="{% url 'patient_detail' patient.pk %}" class="btn btn-sm btn-primary">View</a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Activity Feed -->
+      <div class="col-lg-4">
+        <h5 style="margin-bottom: 1.5rem; font-weight: 600;">Recent Activity</h5>
+        <div class="activity-container">
+          <ul class="activity-list">
+            {% for item in activity|slice:":8" %}
+            <li class="activity-item">
+              <div class="activity-icon" style="color: {% if item.color == 'success' %}#198754{% elif item.color == 'danger' %}#dc3545{% else %}#0d6efd{% endif %};">
+                <i class="bi {{ item.icon }}"></i>
+              </div>
+              <div class="activity-content">
+                <div class="activity-desc">{{ item.desc }}</div>
+                <div class="activity-time">{{ item.time|timesince }} ago</div>
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Medium Risk Section -->
+    {% if medium_risk_patients %}
+    <div class="row g-3 mb-4">
+      <div class="col-12">
+        <div class="chart-container" style="border-left: 4px solid var(--warning-color);">
+          <h5 style="margin-bottom: 1.5rem; font-weight: 600;">NEWS2 Medium Risk Review</h5>
+          <div class="row">
+            {% for patient in medium_risk_patients|slice:":4" %}
+            <div class="col-md-6">
+              <div style="padding: 1rem; background: rgba(255, 193, 7, 0.05); border-radius: var(--border-radius); margin-bottom: 1rem;">
+                <div style="font-weight: 600;">{{ patient.get_full_name }}</div>
+                <div style="font-size: 0.9rem; color: #666; margin-top: 0.3rem;">
+                  NEWS2: {{ patient.latest_news2 }} - Review within 30 minutes
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+
+<script>
+  // Data from server
+  const chartData = {{ chart_data|safe }};
+  const userDarkMode = {{ dark_mode|lower }};
+
+  // Initialize dark mode if user preference exists
+  function initDarkMode() {
+    if (userDarkMode || localStorage.getItem('darkMode') === 'true') {
+      document.body.classList.add('dark-mode');
+      document.getElementById('themeIcon').classList.replace('bi-moon', 'bi-sun-fill');
+    }
+  }
+
+  // Dark mode toggle
+  document.getElementById('themeToggle').addEventListener('click', function() {
+    const isDarkMode = document.body.classList.toggle('dark-mode');
+    const icon = document.getElementById('themeIcon');
+
+    if (isDarkMode) {
+      icon.classList.replace('bi-moon', 'bi-sun-fill');
+      localStorage.setItem('darkMode', 'true');
+    } else {
+      icon.classList.replace('bi-sun-fill', 'bi-moon');
+      localStorage.setItem('darkMode', 'false');
+    }
+  });
+
+  // Animated number counter
+  function animateCounter(element) {
+    const target = parseInt(element.getAttribute('data-value'));
+    const duration = 800;
+    const steps = 60;
+    const stepValue = target / steps;
+    let current = 0;
+
+    const interval = setInterval(() => {
+      current += stepValue;
+      if (current >= target) {
+        element.textContent = target;
+        clearInterval(interval);
+      } else {
+        element.textContent = Math.floor(current);
+      }
+    }, duration / steps);
+  }
+
+  // Start animations on page load
+  document.querySelectorAll('.stat-value').forEach(element => {
+    animateCounter(element);
+  });
+
+  // Live shift countdown timer
+  function initializeShiftCountdown() {
+    const shiftEndTimeStr = document.getElementById('shiftEndTime')?.textContent;
+    if (!shiftEndTimeStr) return;
+
+    function updateCountdown() {
+      const now = new Date();
+      const [endHours, endMinutes] = shiftEndTimeStr.split(':').map(Number);
+
+      // Create end time for today
+      let shiftEnd = new Date();
+      shiftEnd.setHours(endHours, endMinutes, 0, 0);
+
+      // If shift end is in the past, it's for tomorrow (night shift)
+      if (shiftEnd < now) {
+        shiftEnd.setDate(shiftEnd.getDate() + 1);
+      }
+
+      const diff = shiftEnd - now;
+
+      if (diff <= 0) {
+        // Shift has ended
+        document.getElementById('countdownHours').textContent = '0';
+        document.getElementById('countdownMinutes').textContent = '00';
+        document.getElementById('countdownSeconds').textContent = '00';
+        document.getElementById('countdownTimer').classList.add('shift-ending');
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      document.getElementById('countdownHours').textContent = hours;
+      document.getElementById('countdownMinutes').textContent = String(minutes).padStart(2, '0');
+      document.getElementById('countdownSeconds').textContent = String(seconds).padStart(2, '0');
+
+      // Add pulsing effect when 1 hour or less remaining
+      const countdownElement = document.getElementById('countdownTimer');
+      if (hours === 0 && minutes <= 60) {
+        countdownElement.classList.add('shift-ending');
+      } else {
+        countdownElement.classList.remove('shift-ending');
+      }
+    }
+
+    // Update immediately on load
+    updateCountdown();
+
+    // Update every second
+    setInterval(updateCountdown, 1000);
+  }
+
+  // Fetch user's current shift from API and update
+  function updateShiftFromAPI() {
+    fetch('/api/shifts/current/', {
+      headers: {
+        'Authorization': 'Bearer ' + (document.querySelector('[data-auth-token]')?.getAttribute('data-auth-token') || '')
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.shift_type) {
+        // Update times if we got fresh data
+        if (data.start_time) {
+          document.getElementById('shiftStartTime').textContent = data.start_time;
+        }
+        if (data.end_time) {
+          document.getElementById('shiftEndTime').textContent = data.end_time;
+          // Reinitialize countdown with new time
+          initializeShiftCountdown();
+        }
+        if (data.progress_percent !== undefined) {
+          document.getElementById('shiftProgressFill').style.width = data.progress_percent + '%';
+          document.getElementById('shiftProgressPercent').textContent = data.progress_percent + '%';
+        }
+      }
+    })
+    .catch(error => console.log('Using cached shift times'));
+  }
+
+  // Initialize countdown on page load
+  if (document.getElementById('shiftEndTime')) {
+    initializeShiftCountdown();
+    // Try to fetch fresh data from API
+    updateShiftFromAPI();
+    // Refresh from API every 5 minutes
+    setInterval(updateShiftFromAPI, 5 * 60 * 1000);
+  }
+
+  // Chart configurations
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: {
+          usePointStyle: true,
+          padding: 20,
+          font: { size: 12, weight: 500 }
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { stepSize: 1 }
+      }
+    }
+  };
+
+  // Care Notes Chart
+  const notesCtx = document.getElementById('notesChart');
+  if (notesCtx) {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    new Chart(notesCtx, {
+      type: 'line',
+      data: {
+        labels: days,
+        datasets: [{
+          label: 'Care Notes',
+          data: chartData.daily_notes,
+          borderColor: '#198754',
+          backgroundColor: 'rgba(25, 135, 84, 0.05)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        }]
+      },
+      options: chartOptions
+    });
+  }
+
+  // Care Level Distribution Chart
+  const careLevelCtx = document.getElementById('careLevelChart');
+  if (careLevelCtx) {
+    const labels = Object.keys(chartData.care_levels);
+    const data = Object.values(chartData.care_levels);
+    const colors = ['#0d6efd', '#198754', '#ffc107', '#dc3545'];
+
+    new Chart(careLevelCtx, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          backgroundColor: colors.slice(0, labels.length),
+          borderColor: ['white'],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        ...chartOptions,
+        plugins: {
+          legend: { position: 'bottom' }
+        }
+      }
+    });
+  }
+
+  // Notification bell toggle
+  document.getElementById('notificationBell').addEventListener('click', function(e) {
+    e.stopPropagation();
+    const panel = document.getElementById('notificationPanel');
+    panel.classList.toggle('active');
+  });
+
+  // Close notification panel when clicking outside
+  document.addEventListener('click', function() {
+    const panel = document.getElementById('notificationPanel');
+    if (panel.classList.contains('active')) {
+      panel.classList.remove('active');
+    }
+  });
+
+  // Initialize
+  initDarkMode();
+</script>
+{% endblock %}

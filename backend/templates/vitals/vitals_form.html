@@ -1,0 +1,372 @@
+{% extends 'base.html' %}
+{% block title %}Record Vitals — {{ patient.get_full_name }}{% endblock %}
+{% block nav_vitals %}active{% endblock %}
+
+{% block content %}
+<div class="app-content-header">
+  <div class="container-fluid">
+    <div class="row align-items-center">
+      <div class="col-sm-6">
+        <h1 class="mb-0"><i class="bi bi-heart-pulse me-2"></i>Record Vital Signs</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-end mb-0">
+          <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'patient_detail' patient.pk %}">{{ patient.get_full_name }}</a>
+          </li>
+          <li class="breadcrumb-item active">Vital Signs</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="app-content">
+  <div class="container-fluid">
+    <div class="row justify-content-center">
+      <div class="col-lg-9">
+        <!-- Patient info -->
+        <div class="card mb-3 border-start border-4 border-danger">
+          <div class="card-body py-2 d-flex align-items-center gap-3">
+            <div class="patient-avatar bg-danger bg-opacity-10 text-danger" style="width:44px;height:44px;">{{ patient.initials }}</div>
+            <div>
+              <div class="fw-bold">{{ patient.get_full_name }} </div>
+              <small class="text-muted">Room {{ patient.room_number|default:"—" }} &bull; Age {{ patient.get_age }}</small>
+
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header bg-danger text-white">
+            <h3 class="card-title mb-0"><i class="bi bi-heart-pulse me-2"></i>Vital Signs Recording</h3>
+            <div class="card-tools">
+              <small class="text-white opacity-75">All fields optional — record what was measured</small>
+            </div>
+          </div>
+          <div class="card-body">
+            <!---testing-->
+
+            <!-- VOICE RECORDING PANEL -->
+            <div class="card mb-3 border-start border-4 border-primary" id="voice-panel">
+              <div class="card-body">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                  <h5 class="mb-0"><i class="bi bi-mic-fill text-primary me-2"></i>Voice Record Vitals</h5>
+                  <span class="badge bg-secondary">Optional</span>
+                </div>
+                <p class="text-muted small mb-3">
+                  Say vitals aloud, e.g. <em>"Temp 37.2, BP 118 over 76, heart rate 84, sats 98, resps 16, BM 5.5, pain
+                    score 2"</em>
+                </p>
+
+                <div class="d-flex gap-2 align-items-center">
+                  <button type="button" id="btn-record" class="btn btn-primary">
+                    <i class="bi bi-mic-fill me-1"></i> Start Recording
+                  </button>
+                  <button type="button" id="btn-stop" class="btn btn-danger d-none">
+                    <i class="bi bi-stop-fill me-1"></i> Stop & Transcribe
+                  </button>
+                  <!-- ✅ ADDED A RE-RECORD BUTTON incase of mistake -->
+                  <button type="button" id="btn-rerecord" class="btn btn-warning d-none">
+                     <i class="bi bi-arrow-counterclockwise me-1"></i> Re-record
+                  </button>
+                  <div id="recording-indicator" class="d-none">
+                    <span class="badge bg-danger text-white">
+                      <i class="bi bi-record-fill me-1"></i> Recording...
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Status feedback -->
+                <div id="voice-status" class="mt-3 d-none">
+                  <div class="spinner-border spinner-border-sm text-primary me-2" id="voice-spinner"></div>
+                  <span id="voice-status-text">Transcribing...</span>
+                </div>
+
+                <!-- Transcript display -->
+                <div id="transcript-box" class="mt-3 d-none">
+                  <label class="fw-semibold small">Transcript:</label>
+                  <div class="border rounded p-2 bg-light small" id="transcript-text"></div>
+                </div>
+              </div>
+            </div>
+
+
+
+            <!---testing ended-->
+            <form method="post" novalidate>
+              {% csrf_token %}
+
+             <!-- Reference ranges info box -->
+<div class="mb-4 rounded p-3" style="border-left:4px solid #0d6efd; background-color:#f0f4ff;">
+  <div class="d-flex align-items-start gap-3">
+    
+    <!-- Icon — hidden on very small screens -->
+    <div class="d-none d-sm-flex align-items-center justify-content-center rounded text-white bg-primary shadow-sm flex-shrink-0"
+         style="width:42px; height:42px;">
+      <i class="bi bi-info-circle fs-5"></i>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-grow-1">
+
+      <!-- Normal Ranges -->
+      <p class="fw-bold mb-1 small">
+        <i class="bi bi-info-circle text-primary me-1 d-sm-none"></i>Normal Reference Ranges
+      </p>
+      <div class="d-flex flex-wrap gap-1 mb-2">
+        <span class="badge bg-primary bg-opacity-10 text-primary fw-normal">Temp: 36.1–37.2°C</span>
+        <span class="badge bg-primary bg-opacity-10 text-primary fw-normal">BP: 90–120/60–80 mmHg</span>
+        <span class="badge bg-primary bg-opacity-10 text-primary fw-normal">HR: 60–100 bpm</span>
+        <span class="badge bg-primary bg-opacity-10 text-primary fw-normal">RR: 12–20</span>
+        <span class="badge bg-primary bg-opacity-10 text-primary fw-normal">SpO₂: ≥96%</span>
+        <span class="badge bg-primary bg-opacity-10 text-primary fw-normal">BG: 4.0–7.8 mmol/L</span>
+      </div>
+
+      <!-- Valid Ranges -->
+      <p class="fw-bold mb-1 small">Valid Input Ranges</p>
+      <div class="d-flex flex-wrap gap-1">
+        <span class="badge bg-secondary bg-opacity-10 text-secondary fw-normal">Temp: 25–45°C</span>
+        <span class="badge bg-secondary bg-opacity-10 text-secondary fw-normal">BP: 50–300/30–200 mmHg</span>
+        <span class="badge bg-secondary bg-opacity-10 text-secondary fw-normal">HR: 20–300 bpm</span>
+        <span class="badge bg-secondary bg-opacity-10 text-secondary fw-normal">RR: 5–60</span>
+        <span class="badge bg-secondary bg-opacity-10 text-secondary fw-normal">SpO₂: 50–100%</span>
+        <span class="badge bg-secondary bg-opacity-10 text-secondary fw-normal">BG: 1–50 mmol/L</span>
+        <span class="badge bg-secondary bg-opacity-10 text-secondary fw-normal">KG: 1–300 kg</span>
+        <span class="badge bg-secondary bg-opacity-10 text-secondary fw-normal">Pain: 0–10</span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+              <div class="row g-3">
+
+  {% with field=form.temperature icon="bi-thermometer-half" icon_color="text-danger" label="Temperature (°C)" %}
+    {% include "vitals/_field.html" %}
+  {% endwith %}
+
+  {% with field=form.bp_systolic icon="bi-activity" icon_color="text-primary" label="BP Systolic (mmHg)" %}
+    {% include "vitals/_field.html" %}
+  {% endwith %}
+
+  {% with field=form.bp_diastolic icon="bi-activity" icon_color="text-primary" label="BP Diastolic (mmHg)" %}
+    {% include "vitals/_field.html" %}
+  {% endwith %}
+
+  {% with field=form.heart_rate icon="bi-heart-pulse" icon_color="text-danger" label="Heart Rate (bpm)" %}
+    {% include "vitals/_field.html" %}
+  {% endwith %}
+
+  {% with field=form.respiratory_rate icon="bi-lungs" icon_color="text-success" label="Resp. Rate (/min)" %}
+    {% include "vitals/_field.html" %}
+  {% endwith %}
+
+  {% with field=form.oxygen_saturation icon="bi-percent" icon_color="text-info" label="SpO₂ (%)" %}
+    {% include "vitals/_field.html" %}
+  {% endwith %}
+
+  {% with field=form.blood_glucose icon="bi-droplet" icon_color="text-warning" label="Blood Glucose (mmol/L)" %}
+    {% include "vitals/_field.html" %}
+  {% endwith %}
+
+  {% with field=form.weight_kg icon="bi-weight" icon_color="text-secondary" label="Weight (kg)" %}
+    {% include "vitals/_field.html" %}
+  {% endwith %}
+
+  {% with field=form.pain_score icon="bi-emoji-frown" icon_color="text-warning" label="Pain Score (0–10)" %}
+    {% include "vitals/_field.html" %}
+  {% endwith %}
+
+  {% with field=form.recorded_at icon="bi-clock" icon_color="" label="Date & Time" col_class="col-md-5 col-6" %}
+    {% include "vitals/_field.html" %}
+  {% endwith %}
+
+  <div class="col-12">
+    <label class="form-label fw-semibold small">Clinical Notes</label>
+    {{ form.notes }}
+    {% if form.notes.errors %}
+      <div class="invalid-feedback d-block" style="font-size:0.75rem;">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ form.notes.errors.0 }}
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+              <div class="d-flex gap-2 justify-content-end mt-3">
+                <a href="{% url 'patient_detail' patient.pk %}" class="btn btn-outline-secondary"><i
+                    class="bi bi-x-circle me-1"></i>Cancel</a>
+                <button type="submit" class="btn btn-danger px-4"><i class="bi bi-save me-1"></i>Save Vital
+                  Signs</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+
+
+
+let mediaRecorder, audioChunks = [];
+
+const btnRecord = document.getElementById('btn-record');
+const btnStop = document.getElementById('btn-stop');
+const btnRerecord = document.getElementById('btn-rerecord');
+const indicator = document.getElementById('recording-indicator');
+const voiceStatus = document.getElementById('voice-status');
+const voiceStatusText = document.getElementById('voice-status-text');
+const transcriptBox = document.getElementById('transcript-box');
+const transcriptText = document.getElementById('transcript-text');
+
+btnRecord.addEventListener('click', async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+    audioChunks = [];
+
+    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+    mediaRecorder.start();
+
+    btnRecord.classList.add('d-none');
+    btnRerecord.classList.add('d-none');
+    btnStop.classList.remove('d-none');
+    indicator.classList.remove('d-none');
+
+    // ✅ ADD THIS — auto stop after 1 minute (60seconds)
+    const MAX_DURATION_MS = 1 * 60 * 1000; // 1 minute
+    window.recordingTimeout = setTimeout(() => {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+            btnStop.classList.add('d-none');
+            indicator.innerHTML = `<span class="badge bg-warning text-dark">
+                <i class="bi bi-exclamation-triangle me-1"></i> Max recording time reached (1 min)
+            </span>`;
+            indicator.classList.remove('d-none');
+        }
+    }, MAX_DURATION_MS);
+
+    // ✅ ADD THIS — show a countdown timer
+    let seconds = 0;
+    window.recordingTimer = setInterval(() => {
+        seconds++;
+        const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
+        const secs = String(seconds % 60).padStart(2, '0');
+        indicator.innerHTML = `<span class="badge bg-danger text-white">
+            <i class="bi bi-record-fill me-1"></i> Recording... ${mins}:${secs} / 01:00
+        </span>`;
+    }, 1000);
+});
+
+// ✅ ADDED THIS — resets everything back to the start
+btnRerecord.addEventListener('click', () => {
+       // ✅ ADD THESE
+    clearTimeout(window.recordingTimeout);
+    clearInterval(window.recordingTimer);
+    // Reset buttons
+    btnRecord.classList.remove('d-none');
+    btnStop.classList.add('d-none');
+    btnRerecord.classList.add('d-none');
+
+    // Hide status and transcript
+    voiceStatus.classList.add('d-none');
+    transcriptBox.classList.add('d-none');
+    document.getElementById('voice-spinner').classList.remove('d-none');
+
+    // Clear transcript text
+    transcriptText.textContent = '';
+    voiceStatusText.textContent = 'Transcribing...';
+
+    // Clear pre-filled form fields
+    document.querySelector('[name=temperature]').value = '';
+    document.querySelector('[name=bp_systolic]').value = '';
+    document.querySelector('[name=bp_diastolic]').value = '';
+    document.querySelector('[name=heart_rate]').value = '';
+    document.querySelector('[name=respiratory_rate]').value = '';
+    document.querySelector('[name=oxygen_saturation]').value = '';
+    document.querySelector('[name=blood_glucose]').value = '';
+    document.querySelector('[name=weight_kg]').value = '';
+    document.querySelector('[name=pain_score]').value = '';
+    document.querySelector('[name=notes]').value = '';
+    document.querySelector('[name=recorded_at]').value = '';
+  
+   
+});
+
+
+
+btnStop.addEventListener('click', () => {
+      // ✅ ADD THESE — clear the auto-stop timer and countdown
+    clearTimeout(window.recordingTimeout);
+    clearInterval(window.recordingTimer);
+    mediaRecorder.stop();
+    mediaRecorder.onstop = async () => {
+        btnStop.classList.add('d-none');
+        indicator.classList.add('d-none');
+        btnRerecord.classList.remove('d-none');
+        voiceStatus.classList.remove('d-none');
+        voiceStatusText.textContent = 'Transcribing audio...';
+
+        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+        const formData = new FormData();
+        formData.append('audio', blob, 'vitals_recording.webm');
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        try {
+            const response = await fetch("{% url 'voice_transcribe' patient.pk %}", {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await response.json();
+
+            if (data.error) {
+                voiceStatusText.textContent = 'Error: ' + data.error;
+                return;
+            }
+
+            voiceStatusText.textContent = '✅ Done! Form pre-filled. Please review below.';
+            document.getElementById('voice-spinner').classList.add('d-none');
+
+            // Show transcript
+            transcriptBox.classList.remove('d-none');
+            transcriptText.textContent = data.transcript;
+
+            // Pre-fill form fields
+            const v = data.vitals;
+            if (v.temperature)        document.querySelector('[name=temperature]').value = v.temperature;
+            if (v.bp_systolic)        document.querySelector('[name=bp_systolic]').value = v.bp_systolic;
+            if (v.bp_diastolic)       document.querySelector('[name=bp_diastolic]').value = v.bp_diastolic;
+            if (v.heart_rate)         document.querySelector('[name=heart_rate]').value = v.heart_rate;
+            if (v.respiratory_rate)   document.querySelector('[name=respiratory_rate]').value = v.respiratory_rate;
+            if (v.oxygen_saturation)  document.querySelector('[name=oxygen_saturation]').value = v.oxygen_saturation;
+            if (v.blood_glucose)      document.querySelector('[name=blood_glucose]').value = v.blood_glucose;
+            if (v.weight_kg)          document.querySelector('[name=weight_kg]').value = v.weight_kg;
+            if (v.pain_score !== null) document.querySelector('[name=pain_score]').value = v.pain_score;
+            if (v.notes)              document.querySelector('[name=notes]').value = v.notes;
+
+             // ✅ ADDED THIS — sets date/time to right now once voice data is in, since that's when the vitals were actually taken
+            const now = new Date();
+            const formatted = now.getFullYear() + '-' +
+                String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                String(now.getDate()).padStart(2, '0') + 'T' +
+                String(now.getHours()).padStart(2, '0') + ':' +
+                String(now.getMinutes()).padStart(2, '0');
+            document.querySelector('[name=recorded_at]').value = formatted;
+
+          
+
+            // Scroll to form
+            document.querySelector('form[method="post"]').scrollIntoView({ behavior: 'smooth' });
+
+        } catch (err) {
+            voiceStatusText.textContent = 'Network error. Try again.';
+        }
+    };
+});
+</script>
+
+{% endblock %}

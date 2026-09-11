@@ -1,0 +1,284 @@
+{% extends 'base.html' %}
+{% block title %}Shift Handover Report{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+  @media print {
+    .no-print { display: none !important; }
+    .app-sidebar, .app-header, .app-content-header { display: none !important; }
+    .app-content { margin: 0 !important; padding: 0 !important; }
+    .card { break-inside: avoid; }
+  }
+  .handover-header {
+    background: linear-gradient(135deg, #0d2b55 0%, #1b5ea6 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+  }
+  .patient-section { border-left: 4px solid #dee2e6; margin-bottom: 1rem; }
+  .patient-section.has-flags { border-left-color: #dc3545; }
+  .patient-section.no-activity { opacity: 0.65; }
+  .section-mini-label {
+    font-size: .65rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .05em;
+    color: #6c757d; margin-bottom: .25rem;
+  }
+  .vitals-mini span { font-size: .78rem; margin-right: .75rem; }
+  .note-entry {
+    border-left: 3px solid #dee2e6;
+    padding: .3rem .75rem; margin-bottom: .4rem; font-size: .82rem;
+  }
+  .note-entry.urgent { border-left-color: #dc3545; background: #fff5f5; }
+  .note-entry.important { border-left-color: #ffc107; }
+  .note-entry.routine { border-left-color: #198754; }
+  .shift-summary-box {
+    background: #f8f9fa; border-radius: 8px;
+    padding: 1rem 1.25rem; border: 1px solid #dee2e6;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-content-header no-print">
+  <div class="container-fluid">
+    <div class="row align-items-center">
+      <div class="col-sm-6">
+        <h1 class="mb-0"><i class="bi bi-clipboard-check me-2"></i>Shift Handover Report</h1>
+      </div>
+      <div class="col-sm-6 d-flex justify-content-end gap-2">
+        <a href="?shift=day" class="btn btn-warning btn-sm {% if shift == 'day' %}active{% endif %}">
+          <i class="bi bi-sun me-1"></i>Day Shift
+        </a>
+        <a href="?shift=night" class="btn btn-dark btn-sm {% if shift == 'night' %}active{% endif %}">
+          <i class="bi bi-moon-stars me-1"></i>Night Shift
+        </a>
+        <a href="?shift=last12" class="btn btn-secondary btn-sm {% if shift == 'last12' %}active{% endif %}">
+          <i class="bi bi-clock me-1"></i>Last 12hrs
+        </a>
+        <button onclick="window.print()" class="btn btn-primary btn-sm">
+          <i class="bi bi-printer me-1"></i>Print
+        </button>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="app-content">
+  <div class="container-fluid">
+
+    <!-- HANDOVER HEADER -->
+    <div class="handover-header">
+      <div class="row align-items-center">
+        <div class="col-md-6">
+          <div class="d-flex align-items-center gap-3 mb-2">
+            <i class="bi bi-clipboard2-pulse fs-2 opacity-75"></i>
+            <div>
+              <h2 class="mb-0 fw-bold">Jomingos</h2>
+              <p class="mb-0 opacity-75 small">Healthcare Documentation Platform</p>
+            </div>
+          </div>
+          <h4 class="mb-1">{{ shift_label }}</h4>
+          <p class="mb-0 opacity-75 small">Handover to: <strong>{{ next_shift }}</strong></p>
+        </div>
+        <div class="col-md-6 text-md-end mt-3 mt-md-0">
+          <p class="mb-1 small opacity-75">Generated</p>
+          <h5 class="mb-1">{{ generated_at|date:"l, d F Y" }}</h5>
+          <h5 class="mb-2">{{ generated_at|date:"H:i" }}</h5>
+          <p class="mb-0 small opacity-75">By: <strong>{{ generated_by.get_full_name|default:generated_by.username }}</strong></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SHIFT SUMMARY -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="shift-summary-box text-center">
+          <div class="fs-2 fw-bold text-primary">{{ total_patients }}</div>
+          <div class="small text-muted">Total Residents</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="shift-summary-box text-center">
+          <div class="fs-2 fw-bold {% if flagged_count > 0 %}text-danger{% else %}text-success{% endif %}">{{ flagged_count }}</div>
+          <div class="small text-muted">Residents Flagged</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="shift-summary-box text-center">
+          <div class="fs-2 fw-bold text-success">{{ handover_data|length }}</div>
+          <div class="small text-muted">On Report</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="shift-summary-box text-center">
+          <div class="fs-2 fw-bold text-warning">{{ generated_at|date:"H:i" }}</div>
+          <div class="small text-muted">Report Time</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FLAGGED PATIENTS SUMMARY -->
+    {% if flagged_count > 0 %}
+    <div class="card border-danger mb-4">
+      <div class="card-header bg-danger text-white fw-bold">
+        <i class="bi bi-exclamation-octagon-fill me-2"></i>Flags Requiring Immediate Attention
+      </div>
+      <div class="card-body p-0">
+        {% for d in handover_data %}
+        {% if d.flags %}
+        <div class="d-flex align-items-center gap-3 px-3 py-2 border-bottom">
+          <div class="patient-avatar bg-danger bg-opacity-10 text-danger flex-shrink-0" style="width:36px;height:36px;font-size:.8rem;">
+            {{ d.patient.initials }}
+          </div>
+          <div class="flex-grow-1">
+            <span class="fw-bold small">{{ d.patient.get_full_name }}</span>
+            <span class="text-muted small ms-2">Room {{ d.patient.room_number|default:"—" }}</span>
+            <div class="d-flex gap-1 flex-wrap mt-1">
+              {% for flag in d.flags %}
+              <span class="badge bg-{{ flag.type }}">{{ flag.text }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          <a href="{% url 'patient_detail' d.patient.pk %}" class="btn btn-danger btn-sm no-print">
+            <i class="bi bi-eye"></i>
+          </a>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- PATIENT BY PATIENT HANDOVER -->
+    <h5 class="fw-bold mb-3 border-bottom pb-2">
+      <i class="bi bi-people me-2"></i>Resident Handover — All Patients
+    </h5>
+
+    {% for d in handover_data %}
+    <div class="card mb-3 patient-section {% if d.flags %}has-flags{% endif %} {% if not d.has_activity %}no-activity{% endif %}">
+      <div class="card-header py-2 {% if d.flags %}bg-danger bg-opacity-10{% else %}bg-light{% endif %}">
+        <div class="d-flex align-items-center gap-3">
+          <div class="patient-avatar bg-{{ d.patient.care_level_badge }} bg-opacity-15 text-{{ d.patient.care_level_badge }}" style="width:40px;height:40px;font-size:.9rem;flex-shrink:0;">
+            {{ d.patient.initials }}
+          </div>
+          <div class="flex-grow-1">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <span class="fw-bold">{{ d.patient.get_full_name }}</span>
+              <span class="badge text-bg-{{ d.patient.care_level_badge }}" style="font-size:.65rem;">{{ d.patient.get_care_level_display }}</span>
+              <span class="text-muted small">Room {{ d.patient.room_number|default:"—" }}</span>
+              <span class="text-muted small">&bull; Age {{ d.patient.get_age }}</span>
+              {% if d.patient.has_allergies %}
+              <span class="badge bg-danger" style="font-size:.65rem;"><i class="bi bi-exclamation-triangle me-1"></i>ALLERGY</span>
+              {% endif %}
+            </div>
+          </div>
+          {% if d.latest_v %}
+          <span class="badge text-bg-{{ d.latest_v.news2_color }} fw-bold" style="font-size:.75rem;">
+            NEWS2: {{ d.latest_v.news2_total }} — {{ d.latest_v.news2_label }}
+          </span>
+          {% endif %}
+          <div class="d-flex gap-2 no-print">
+            {% if d.notes %}<span class="badge bg-success">{{ d.notes|length }} note{{ d.notes|length|pluralize }}</span>{% endif %}
+            {% if d.meds %}<span class="badge bg-primary">{{ d.meds|length }} med{{ d.meds|length|pluralize }}</span>{% endif %}
+            {% if d.vitals %}<span class="badge bg-danger">{{ d.vitals|length }} vital{{ d.vitals|length|pluralize }}</span>{% endif %}
+          </div>
+          <a href="{% url 'patient_detail' d.patient.pk %}" class="btn btn-outline-secondary btn-sm no-print" style="font-size:.7rem;">
+            <i class="bi bi-eye me-1"></i>View
+          </a>
+        </div>
+      </div>
+
+      <div class="card-body py-2 px-3">
+        <div class="row g-3">
+
+          <!-- Latest Vitals -->
+          <div class="col-md-4">
+            <div class="section-mini-label"><i class="bi bi-heart-pulse me-1"></i>Latest Vitals</div>
+            {% if d.latest_v %}
+            <div class="vitals-mini">
+              <span><i class="bi bi-thermometer-half me-1 text-danger"></i>{% if d.latest_v.temperature %}{{ d.latest_v.temperature }}°C{% else %}—{% endif %}</span>
+              <span><i class="bi bi-activity me-1 text-primary"></i>{{ d.latest_v.bp_display }}</span>
+              <span><i class="bi bi-heart me-1 text-danger"></i>{% if d.latest_v.heart_rate %}{{ d.latest_v.heart_rate }}bpm{% else %}—{% endif %}</span>
+              <span><i class="bi bi-lungs me-1 text-info"></i>{% if d.latest_v.oxygen_saturation %}{{ d.latest_v.oxygen_saturation }}%{% else %}—{% endif %}</span>
+              <span><i class="bi bi-thermometer me-1 text-warning"></i>{% if d.latest_v.respiratory_rate %}{{ d.latest_v.respiratory_rate }} RR{% else %}—{% endif %}</span>
+            </div>
+            <small class="text-muted">{{ d.latest_v.recorded_at|timesince }} ago &bull; {{ d.latest_v.recorded_by.get_full_name|default:"—" }}</small>
+            {% else %}
+            <small class="text-muted fst-italic">No vitals recorded</small>
+            {% endif %}
+          </div>
+
+          <!-- Care Notes -->
+          <div class="col-md-5">
+            <div class="section-mini-label"><i class="bi bi-journal-text me-1"></i>Care Notes This Shift ({{ d.notes|length }})</div>
+            {% if d.notes %}
+            {% for note in d.notes %}
+            <div class="note-entry {{ note.priority }}">
+              <div class="d-flex justify-content-between">
+                <span class="fw-semibold">{{ note.get_category_display }}</span>
+                <span class="text-muted" style="font-size:.72rem;">{{ note.created_at|date:"H:i" }} — {{ note.author.get_full_name|default:"?" }}</span>
+              </div>
+              {% if note.note_text %}<div class="text-muted" style="font-size:.78rem;">{{ note.note_text|truncatechars:100 }}</div>{% endif %}
+              {% if note.obs_location %}<div class="text-muted" style="font-size:.72rem;"><i class="bi bi-geo-alt me-1"></i>{{ note.get_obs_location_display }} — {{ note.get_obs_status_display }}</div>{% endif %}
+              {% if note.mood %}<div class="text-muted" style="font-size:.72rem;"><i class="bi bi-emoji-smile me-1"></i>Mood: {{ note.get_mood_display }}</div>{% endif %}
+            </div>
+            {% endfor %}
+            {% else %}
+            <small class="text-muted fst-italic">No care notes this shift</small>
+            {% endif %}
+          </div>
+
+          <!-- Medications -->
+          <div class="col-md-3">
+            <div class="section-mini-label"><i class="bi bi-capsule me-1"></i>Medications ({{ d.meds|length }})</div>
+            {% if d.meds %}
+            {% for med in d.meds %}
+            <div style="font-size:.78rem;" class="mb-1">
+              <span class="fw-semibold">{{ med.drug_name }}</span> {{ med.dosage }}
+              <span class="text-muted">({{ med.get_route_display }})</span><br>
+              <span class="text-muted">{{ med.administered_at|date:"H:i" }} — {{ med.administered_by.get_full_name|default:"?" }}</span>
+              {% if med.refused %}<span class="badge bg-warning text-dark ms-1" style="font-size:.6rem;">Refused</span>{% endif %}
+            </div>
+            {% endfor %}
+            {% else %}
+            <small class="text-muted fst-italic">No medications this shift</small>
+            {% endif %}
+          </div>
+
+        </div>
+
+        {% if d.flags %}
+        <div class="mt-2 d-flex gap-2 flex-wrap">
+          {% for flag in d.flags %}
+          <span class="badge bg-{{ flag.type }} py-1 px-2"><i class="bi bi-flag-fill me-1"></i>{{ flag.text }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if not d.has_activity %}
+        <div class="text-center text-muted py-2 small fst-italic">
+          <i class="bi bi-check-circle text-success me-1"></i>No activity recorded this shift — resident stable
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+    {% empty %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-people fs-1 d-block mb-2 opacity-25"></i>No active patients found.
+    </div>
+    {% endfor %}
+
+    <div class="mt-4 pt-3 border-top text-muted small text-center">
+      <p class="mb-1"><strong>Jomingos</strong> — Shift Handover Report — {{ shift_label }}</p>
+      <p class="mb-0">Generated {{ generated_at|date:"d F Y H:i" }} by {{ generated_by.get_full_name|default:generated_by.username }} &bull; This document is confidential.</p>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
