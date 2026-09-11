@@ -20,6 +20,7 @@ JOMINGOS is a full-stack healthcare management system designed for care faciliti
 - **Notifications** - Real-time alerts and notifications
 - **Audit Logging** - Complete tracking of all system activities for compliance
 - **API Documentation** - Auto-generated API docs for integration
+- **Live Alert** - To detect falls from residents.
 
 ## Project Structure
 
